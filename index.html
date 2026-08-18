@@ -1331,6 +1331,10 @@
   .mpBtn.primary { background:#315d83; border-color:#74c0d8; }
   .mpBtn:disabled { opacity:.45; cursor:not-allowed; }
   .mpInput { width:100%; box-sizing:border-box; background:#0c0e10; border:1px solid rgba(255,255,255,.2); color:#fff; padding:13px; border-radius:6px; outline:none; text-transform:uppercase; font-family:Consolas,monospace; }
+   #characterNameInput { text-transform:none; }
+   #roomScreen.lobbyScreen { min-height:230px; }
+   #roomScreen.lobbyScreen .mpBtn.primary { position:fixed; right:max(18px,4vw); bottom:max(18px,4vw); width:auto; min-width:150px; margin:0; }
+   #roomScreen.lobbyScreen .mpInput { margin-top:4px; }
   .mpStatus { min-height:18px; margin-top:12px; color:#9db4c2; font-size:11px; white-space:pre-wrap; }
   .mpUser { display:flex; align-items:center; gap:10px; margin:10px 0 16px; }
   .mpAvatar { width:38px; height:38px; border-radius:50%; object-fit:cover; background:#252a30; }
@@ -1344,17 +1348,23 @@
   <div class="mpCard">
     <div id="loginScreen" class="mpScreen active">
       <h1>FPS // ONLINE</h1>
-      <p>PS1-style 3D FPS multiplayer. Login Google lalu masuk ke room yang sama dengan teman.</p>
-      <button id="googleLoginBtn" class="mpBtn primary">MASUK DENGAN GOOGLE</button>
+      <p>Masuk untuk bermain FPS online. Setelah login, kamu akan dibawa ke lobby secara otomatis.</p>
+      <button id="googleLoginBtn" class="mpBtn primary">MASUK</button>
       <div id="loginStatus" class="mpStatus">Menghubungkan ke Firebase...</div>
     </div>
-    <div id="roomScreen" class="mpScreen">
-      <h1>ROOM</h1>
+    <div id="welcomeScreen" class="mpScreen">
+      <h1>SIAP BERMAIN?</h1>
+      <p>Tekan masuk untuk mengubah layar HP ke posisi miring dan membuka lobby.</p>
+      <button id="enterLobbyBtn" class="mpBtn primary">MASUK KE LOBBY</button>
+    </div>
+    <div id="roomScreen" class="mpScreen lobbyScreen">
+      <h1>LOBBY</h1>
       <div class="mpUser"><img id="mpAvatar" class="mpAvatar" alt=""><div><b id="mpName">PLAYER</b><div id="mpUid" class="mpSmall"></div></div></div>
-      <input id="roomInput" class="mpInput" maxlength="12" placeholder="KODE ROOM, contoh: ABC123">
-      <button id="joinRoomBtn" class="mpBtn primary">MASUK ROOM</button>
+      <label for="characterNameInput" class="mpSmall">NAMA KARAKTER</label>
+      <input id="characterNameInput" class="mpInput" maxlength="20" placeholder="Masukkan nama karakter">
+      <button id="joinRoomBtn" class="mpBtn primary">MULAI</button>
       <button id="logoutBtn" class="mpBtn">KELUAR AKUN</button>
-      <div id="roomStatus" class="mpStatus">Masukkan kode room.</div>
+      <div id="roomStatus" class="mpStatus">Pilih nama lalu tekan MULAI. Kamu akan masuk ke map yang masih tersedia.</div>
     </div>
     <div id="roomReadyScreen" class="mpScreen">
       <h1 id="readyTitle">ROOM SIAP</h1>
@@ -1365,7 +1375,7 @@
     </div>
   </div>
 </div>
-<div id="roomInfoHud" style="display:none">ROOM: <span id="roomHudCode">---</span> • PLAYERS: <span id="roomHudPlayers">1/10</span></div>
+ <div id="roomInfoHud" style="display:none">MAP: <span id="roomHudCode">1</span> • PLAYERS: <span id="roomHudPlayers">1/10</span></div>
 
 
 <div id="overlay">
@@ -1452,7 +1462,7 @@
 <div id="worldHealthBars" aria-hidden="true"></div>
 <div id="lowHealthOverlay"></div>
 <div id="damageOverlay"></div>
-<div id="retroMapBadge" style="position:fixed;right:16px;top:16px;z-index:13;color:#bdb6a2;background:rgba(12,12,11,.58);border:1px solid rgba(189,182,162,.25);padding:4px 7px;font:700 8px/1 Consolas,monospace;letter-spacing:1px;pointer-events:none">PS1 // 10P // 40M</div>
+ <div id="retroMapBadge" style="position:fixed;right:16px;top:16px;z-index:13;color:#bdb6a2;background:rgba(12,12,11,.58);border:1px solid rgba(189,182,162,.25);padding:4px 7px;font:700 8px/1 Consolas,monospace;letter-spacing:1px;pointer-events:none">PS1 // MAP 1 // 10P</div>
 <div id="matchHud" aria-live="polite">
   <span id="objectiveText" aria-hidden="true"></span>
   <span id="roundTimer">03:00</span>
@@ -1494,8 +1504,23 @@ let firebaseApp = null, auth = null, db = null, firebaseUser = null;
 let currentRoom = '';
 let roomPlayersRef = null;
 let myRoomPlayerRef = null;
+let myRoomSlotRef = null;
+let mySpawnSlotRef = null;
+let myHitsRef = null;
 let firebaseJoined = false;
 let gameReady = false;
+let currentMapNumber = 1;
+let currentRoomSlot = -1;
+let currentSpawnSlot = -1;
+const MAX_PLAYERS_PER_MAP = 10;
+const MATCH_ROOM_PREFIX = 'fps-map-';
+// Sepuluh titik yang berbeda dan cukup berjauhan. Slot ini diklaim secara
+// atomik di Firebase sehingga dua pemain tidak pernah mendapat titik yang sama.
+const PLAYER_SPAWN_SLOTS = [
+  { x: -17, z: 17 }, { x: -8, z: 17 }, { x: 3, z: 17 }, { x: 16, z: 17 },
+  { x: -17, z: 8 }, { x: 17, z: 8 }, { x: -8, z: 2.8 }, { x: 8, z: -2 },
+  { x: -17, z: -8 }, { x: 17, z: -8 },
+];
 // Menunggu Firebase selesai memeriksa sesi login tersimpan (dan hasil redirect,
 // jika popup ditolak browser) sebelum kita berani menampilkan layar login.
 // Tanpa ini, layar login bisa "berkedip" balik ke awal walau user sudah login.
@@ -1526,17 +1551,19 @@ const isUnsupportedOrigin = window.location.protocol === 'file:';
 
 const authRoomOverlay = document.getElementById('authRoomOverlay');
 const loginScreen = document.getElementById('loginScreen');
+const welcomeScreen = document.getElementById('welcomeScreen');
 const roomScreen = document.getElementById('roomScreen');
 const roomReadyScreen = document.getElementById('roomReadyScreen');
 const loginStatus = document.getElementById('loginStatus');
 const roomStatus = document.getElementById('roomStatus');
 const readyStatus = document.getElementById('readyStatus');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
+const enterLobbyBtn = document.getElementById('enterLobbyBtn');
 const joinRoomBtn = document.getElementById('joinRoomBtn');
 const enterFpsBtn = document.getElementById('enterFpsBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 const logoutBtn = document.getElementById('logoutBtn');
-const roomInput = document.getElementById('roomInput');
+const characterNameInput = document.getElementById('characterNameInput');
 const mpName = document.getElementById('mpName');
 const mpUid = document.getElementById('mpUid');
 const mpAvatar = document.getElementById('mpAvatar');
@@ -1547,12 +1574,65 @@ const roomHudCode = document.getElementById('roomHudCode');
 const roomHudPlayers = document.getElementById('roomHudPlayers');
 
 function showMpScreen(screen) {
-  [loginScreen, roomScreen, roomReadyScreen].forEach(x => x.classList.remove('active'));
+  [loginScreen, welcomeScreen, roomScreen, roomReadyScreen].forEach(x => x.classList.remove('active'));
   screen.classList.add('active');
 }
 function setMpStatus(el, text, bad=false) { if (el) { el.textContent = text; el.style.color = bad ? '#ff8b8b' : '#9db4c2'; } }
 function getDisplayName(user) { return (user?.displayName || user?.email?.split('@')[0] || 'PLAYER').slice(0,20); }
-function cleanRoomCode(v) { return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12); }
+function getCharacterName() {
+  const typed = String(characterNameInput?.value || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+  if (typed) {
+    try { window.localStorage.setItem('fps-character-name', typed); } catch (error) {}
+    return typed;
+  }
+  try {
+    const saved = window.localStorage.getItem('fps-character-name');
+    if (saved) return saved.slice(0, 20);
+  } catch (error) {}
+  return getDisplayName(firebaseUser);
+}
+
+function shuffleList(list) {
+  return [...list].sort(() => Math.random() - 0.5);
+}
+
+async function claimRoomSlot(roomRef, uid) {
+  const slotsRef = roomRef.child('slots');
+  for (const slot of shuffleList(Array.from({ length: MAX_PLAYERS_PER_MAP }, (_, i) => i))) {
+    const slotRef = slotsRef.child(String(slot));
+    const result = await slotRef.transaction(current => (
+      current === null || current === uid ? uid : undefined
+    ));
+    if (result.committed && result.snapshot.val() === uid) {
+      return { index: slot, ref: slotRef };
+    }
+  }
+  return null;
+}
+
+async function claimSpawnSlot(roomRef, uid) {
+  const spawnsRef = roomRef.child('spawns');
+  for (const slot of shuffleList(Array.from({ length: PLAYER_SPAWN_SLOTS.length }, (_, i) => i))) {
+    const slotRef = spawnsRef.child(String(slot));
+    const result = await slotRef.transaction(current => (
+      current === null || current === uid ? uid : undefined
+    ));
+    if (result.committed && result.snapshot.val() === uid) {
+      return { index: slot, ref: slotRef, position: PLAYER_SPAWN_SLOTS[slot] };
+    }
+  }
+  return null;
+}
+
+async function findAndClaimMatchRoom(uid) {
+  for (let mapNumber = 1; mapNumber <= 999; mapNumber++) {
+    const code = `${MATCH_ROOM_PREFIX}${mapNumber}`;
+    const roomRef = db.ref(`rooms/${code}`);
+    const claim = await claimRoomSlot(roomRef, uid);
+    if (claim) return { code, mapNumber, roomRef, roomSlot: claim };
+  }
+  throw new Error('Tidak ada map yang tersedia.');
+}
 
 async function loginGoogle() {
   if (!auth) { setMpStatus(loginStatus, 'Firebase gagal dimuat.', true); return; }
@@ -1597,46 +1677,62 @@ async function loginGoogle() {
 
 async function leaveCurrentRoom() {
   if (myRoomPlayerRef) { try { await myRoomPlayerRef.remove(); } catch(e) {} }
+  if (myRoomSlotRef) { try { await myRoomSlotRef.remove(); } catch(e) {} }
+  if (mySpawnSlotRef) { try { await mySpawnSlotRef.remove(); } catch(e) {} }
+  if (myHitsRef) { try { myHitsRef.off(); } catch(e) {} }
   if (roomPlayersRef) { roomPlayersRef.off(); }
-  myRoomPlayerRef = null; roomPlayersRef = null; currentRoom = ''; firebaseJoined = false; gameReady = false;
+  myRoomPlayerRef = null; myRoomSlotRef = null; mySpawnSlotRef = null; myHitsRef = null;
+  roomPlayersRef = null; currentRoom = ''; currentRoomSlot = -1; currentSpawnSlot = -1;
+  firebaseJoined = false; gameReady = false;
 }
 
 async function joinRoom() {
   if (!firebaseUser || !db) return;
-  const code = cleanRoomCode(roomInput.value);
-  if (code.length < 3) { setMpStatus(roomStatus, 'Kode room minimal 3 karakter.', true); return; }
   joinRoomBtn.disabled = true;
-  setMpStatus(roomStatus, 'Mengecek kapasitas room...');
+  setMpStatus(roomStatus, 'Mencari map yang masih tersedia...');
   try {
     await leaveCurrentRoom();
-    const playersRef = db.ref('rooms/' + code + '/players');
     const uid = firebaseUser.uid;
-    const myRef = playersRef.child(uid);
-    const result = await playersRef.once('value');
-    const existing = result.val() || {};
-    const ids = Object.keys(existing);
-    if (!existing[uid] && ids.length >= 10) {
-      setMpStatus(roomStatus, 'ROOM PENUH (10/10). Pilih room lain.', true);
-      joinRoomBtn.disabled = false;
-      return;
+    const characterName = getCharacterName();
+    const match = await findAndClaimMatchRoom(uid);
+    const { code, mapNumber, roomRef, roomSlot } = match;
+    const spawnSlot = await claimSpawnSlot(roomRef, uid);
+    if (!spawnSlot) {
+      await roomSlot.ref.remove();
+      throw new Error('Semua titik spawn sedang dipakai. Coba tekan MULAI lagi.');
     }
+    const playersRef = roomRef.child('players');
+    const myRef = playersRef.child(uid);
     const initialState = {
-      id: uid, name: getDisplayName(firebaseUser), photoURL: firebaseUser.photoURL || '',
-      x: -17, y: 1.7, z: 17, rotationY: Math.PI, health: 100, maxHealth: 100, alive: true,
-      state: 'idle', room: code, joinedAt: firebase.database.ServerValue.TIMESTAMP, lastSeen: firebase.database.ServerValue.TIMESTAMP
+      id: uid, name: characterName, photoURL: firebaseUser.photoURL || '',
+      x: spawnSlot.position.x, y: 1.7, z: spawnSlot.position.z,
+      rotationY: Math.atan2(-spawnSlot.position.x, -spawnSlot.position.z),
+      health: 100, maxHealth: 100, alive: true, spawnSlot: spawnSlot.index,
+      roomSlot: roomSlot.index, mapNumber, state: 'idle', room: code,
+      joinedAt: firebase.database.ServerValue.TIMESTAMP, lastSeen: firebase.database.ServerValue.TIMESTAMP
     };
     await myRef.set(initialState);
     await myRef.onDisconnect().remove();
-    currentRoom = code; roomPlayersRef = playersRef; myRoomPlayerRef = myRef; firebaseJoined = true;
-    roomInput.value = code;
-    readyRoom.textContent = code; roomHudCode.textContent = code;
+    await roomSlot.ref.onDisconnect().remove();
+    await spawnSlot.ref.onDisconnect().remove();
+    currentRoom = code; currentMapNumber = mapNumber; currentRoomSlot = roomSlot.index;
+    currentSpawnSlot = spawnSlot.index; roomPlayersRef = playersRef; myRoomPlayerRef = myRef;
+    myRoomSlotRef = roomSlot.ref; mySpawnSlotRef = spawnSlot.ref; firebaseJoined = true;
+    playerSpawnPosition.set(spawnSlot.position.x, 1.7, spawnSlot.position.z);
+    camera.position.copy(playerSpawnPosition);
+    yaw = initialState.rotationY;
+    applyMapTheme(mapNumber);
+    const myHitsPath = roomRef.child(`hits/${uid}`);
+    myHitsRef = myHitsPath;
     roomHud.style.display = 'block';
-    setMpStatus(roomStatus, 'Berhasil masuk room.');
-    showMpScreen(roomReadyScreen);
+    roomHudCode.textContent = String(mapNumber);
+    setMpStatus(roomStatus, `MAP ${mapNumber} siap. Memasukkan kamu ke gameplay...`);
     watchRoomPlayers();
+    listenForRemoteHits(myHitsPath);
+    enterFps();
   } catch (e) {
     console.error(e);
-    setMpStatus(roomStatus, 'Gagal masuk room: ' + (e.code || e.message), true);
+    setMpStatus(roomStatus, 'Gagal masuk gameplay: ' + (e.code || e.message), true);
   } finally { joinRoomBtn.disabled = false; }
 }
 
@@ -1649,6 +1745,9 @@ function watchRoomPlayers() {
     roomHudPlayers.textContent = count + '/10';
     const el = document.getElementById('remoteCount');
     if (el) el.textContent = Math.max(0, count - 1);
+    if (count >= MAX_PLAYERS_PER_MAP) {
+      setMpStatus(roomStatus, `MAP ${currentMapNumber} penuh (${MAX_PLAYERS_PER_MAP}/${MAX_PLAYERS_PER_MAP}). Pemain berikutnya akan masuk MAP ${currentMapNumber + 1}.`);
+    }
   };
   roomPlayersRef.on('value', updateCount);
   roomPlayersRef.on('child_added', snap => { if (snap.key !== firebaseUser.uid) applyFirebasePlayer(snap.key, snap.val()); });
@@ -1668,6 +1767,26 @@ function applyFirebasePlayer(uid, data) {
   });
 }
 
+function listenForRemoteHits(hitsRef) {
+  if (!hitsRef) return;
+  hitsRef.on('child_added', snap => {
+    const hit = snap.val() || {};
+    const from = String(hit.from || '');
+    if (from && from === getLocalPlayerId()) {
+      snap.ref.remove();
+      return;
+    }
+    const pointData = hit.position || {};
+    const point = new THREE.Vector3(
+      Number(pointData.x) || camera.position.x,
+      Number(pointData.y) || camera.position.y,
+      Number(pointData.z) || camera.position.z,
+    );
+    applyPlayerDamage(Number(hit.damage) || 34, point);
+    snap.ref.remove().catch(() => {});
+  });
+}
+
 function removeFirebasePlayer(uid) {
   const actor = remotePlayers.get(String(uid));
   if (!actor) return;
@@ -1683,7 +1802,7 @@ function publishFirebaseState(state) {
   myRoomPlayerRef.update({
     x:p.x, y:p.y, z:p.z, rotationY:state.rotationY, state:state.state, lean:state.lean,
     shooting:state.shooting, reloading:state.reloading, alive:state.alive, health:state.health,
-    maxHealth:state.maxHealth, name:getDisplayName(firebaseUser), lastSeen:firebase.database.ServerValue.TIMESTAMP
+    maxHealth:state.maxHealth, name:getCharacterName(), lastSeen:firebase.database.ServerValue.TIMESTAMP
   }).catch(e => console.warn('state update gagal', e));
 }
 
@@ -1691,17 +1810,29 @@ function enterFps() {
   if (!firebaseJoined) return;
   gameReady = true;
   authRoomOverlay.classList.add('hidden');
-  document.getElementById('overlay').style.display = 'flex';
+  document.getElementById('overlay').style.display = 'none';
   const text = document.getElementById('overlayText');
-  if (text) text.textContent = 'ROOM ' + currentRoom + ' • Maksimal 10 pemain • Semua pemain di room ini akan terlihat di map.';
+  if (text) text.textContent = `MAP ${currentMapNumber} • ${MAX_PLAYERS_PER_MAP} pemain maksimum • Peluru bisa mengenai pemain lain.`;
+  requestLandscapeFullscreen();
+  if (!isTouchDevice && document.pointerLockElement !== renderer.domElement) {
+    const lockResult = renderer.domElement.requestPointerLock?.();
+    if (lockResult?.catch) lockResult.catch(() => {});
+  }
 }
 
 if (googleLoginBtn) googleLoginBtn.addEventListener('click', loginGoogle);
+if (enterLobbyBtn) enterLobbyBtn.addEventListener('click', () => {
+  requestLandscapeFullscreen();
+  if (characterNameInput) {
+    try { characterNameInput.value = window.localStorage.getItem('fps-character-name') || ''; } catch (error) {}
+  }
+  showMpScreen(roomScreen);
+  characterNameInput?.focus();
+});
 if (joinRoomBtn) joinRoomBtn.addEventListener('click', joinRoom);
-if (roomInput) roomInput.addEventListener('input', () => { roomInput.value = cleanRoomCode(roomInput.value); });
 if (enterFpsBtn) enterFpsBtn.addEventListener('click', enterFps);
 if (leaveRoomBtn) leaveRoomBtn.addEventListener('click', async () => { await leaveCurrentRoom(); roomHud.style.display='none'; showMpScreen(roomScreen); });
-if (logoutBtn) logoutBtn.addEventListener('click', async () => { await leaveCurrentRoom(); try { await auth.signOut(); } catch(e){} });
+if (logoutBtn) logoutBtn.addEventListener('click', async () => { await leaveCurrentRoom(); roomHud.style.display='none'; try { await auth.signOut(); } catch(e){} });
 
 if (isUnsupportedOrigin) {
   setMpStatus(loginStatus, 'Buka file ini lewat server web (http/https), bukan langsung dari file lokal, supaya Login Google bisa menyimpan sesi.', true);
@@ -1733,12 +1864,14 @@ if (auth) {
       mpName.textContent = getDisplayName(user); mpUid.textContent = user.uid.slice(0,12);
       mpAvatar.src = user.photoURL || '';
       mpAvatar.onerror = () => { mpAvatar.removeAttribute('src'); };
-      // Kalau sebelumnya sedang di room/ready screen (mis. reconnect di tab
-      // yang sama), tidak perlu memaksa balik ke roomScreen.
-      if (!loginScreen.classList.contains('active') && (roomScreen.classList.contains('active') || roomReadyScreen.classList.contains('active'))) {
+      try { characterNameInput.value = window.localStorage.getItem('fps-character-name') || ''; } catch (error) {}
+      // Sesi yang masih berada di lobby/game tidak boleh dilempar balik ke
+      // welcome screen saat Firebase mengirim event status kedua.
+      if (firebaseJoined && !loginScreen.classList.contains('active')) {
         return;
       }
-      showMpScreen(roomScreen); setMpStatus(roomStatus, 'Login berhasil. Masukkan kode room.');
+      showMpScreen(welcomeScreen);
+      setMpStatus(loginStatus, 'Login berhasil. Tekan MASUK KE LOBBY.');
     } else if (redirectResultChecked) {
       // Baru tampilkan layar login setelah kita pastikan tidak sedang
       // menunggu hasil redirect dari Google — mencegah loop "disuruh login
@@ -2059,6 +2192,20 @@ groundGeo.rotateX(-Math.PI / 2);
 const ground = new THREE.Mesh(groundGeo, groundMat);
 ground.receiveShadow = true;
 scene.add(ground);
+
+function applyMapTheme(mapNumber) {
+  const palette = [
+    { background: 0x08080a, floor: 0x4a4843, fog: 0x08080a },
+    { background: 0x07131a, floor: 0x3e5052, fog: 0x07131a },
+    { background: 0x160b12, floor: 0x59434a, fog: 0x160b12 },
+    { background: 0x11100a, floor: 0x5b5336, fog: 0x11100a },
+  ][(Math.max(1, Number(mapNumber) || 1) - 1) % 4];
+  scene.background.setHex(palette.background);
+  scene.fog.color.setHex(palette.fog);
+  groundMat.color.setHex(palette.floor);
+  const badge = document.getElementById('retroMapBadge');
+  if (badge) badge.textContent = `PS1 // MAP ${mapNumber} // ${MAX_PLAYERS_PER_MAP}P`;
+}
 
 function buildFloorGrid() {
   const pts = [];
@@ -3256,6 +3403,7 @@ function applyRemotePlayerState(data) {
     actor.isDemo = false;
     actor.targetPosition = new THREE.Vector3();
     actor.targetRotationY = 0;
+    actor.remoteId = String(data.id);
     actor.remoteState = CHARACTER_STATES.IDLE;
       actor.maxHealth = 100;
       actor.health = 100;
@@ -4007,6 +4155,40 @@ const enemyBulletGeo = new THREE.SphereGeometry(0.075, 8, 8);
 const enemyBulletMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
 const damageCameraOffset = new THREE.Vector3();
 let damageShakeTime = 0;
+
+function segmentHitsSphere(start, end, center, radius) {
+  const direction = end.clone().sub(start);
+  const lengthSq = direction.lengthSq();
+  const t = lengthSq > 0
+    ? Math.max(0, Math.min(1, center.clone().sub(start).dot(direction) / lengthSq))
+    : 0;
+  const closest = start.clone().addScaledVector(direction, t);
+  return closest.distanceToSquared(center) <= radius * radius;
+}
+
+function findRemotePlayerHit(start, end) {
+  if (!firebaseJoined || !remotePlayers?.size) return null;
+  for (const actor of remotePlayers.values()) {
+    if (!actor.alive || actor.health <= 0 || !actor.remoteId) continue;
+    const center = actor.group.position.clone();
+    center.y += 1.25;
+    if (segmentHitsSphere(start, end, center, 0.58)) {
+      return { actor, point: end.clone() };
+    }
+  }
+  return null;
+}
+
+function sendRemoteHit(actor, point) {
+  if (!actor?.remoteId || !firebaseJoined || !db || !firebaseUser || !currentRoom) return;
+  const hitRef = db.ref(`rooms/${currentRoom}/hits/${actor.remoteId}`).push();
+  hitRef.set({
+    from: firebaseUser.uid,
+    damage: 34,
+    position: { x: point.x, y: point.y, z: point.z },
+    sentAt: firebase.database.ServerValue.TIMESTAMP,
+  }).catch(error => console.warn('hit player gagal', error));
+}
 
 const muzzleLight = new THREE.PointLight(0xffcc66, 0, 8);
 scene.add(muzzleLight);
@@ -5726,6 +5908,7 @@ function animate() {
   // ---- update peluru + deteksi kena dinding/NPC ----
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    const previousBulletPosition = b.mesh.position.clone();
     b.mesh.position.addScaledVector(b.velocity, delta);
     b.life -= delta;
 
@@ -5754,6 +5937,19 @@ function animate() {
       }
     }
     if (removed) continue;
+
+    // Peluru lokal juga memeriksa kapsul pemain lain. Damage dikirim lewat
+    // Firebase ke pemilik avatar, sehingga health dan respawn tetap diproses
+    // oleh client yang benar-benar terkena.
+    const remoteHit = findRemotePlayerHit(previousBulletPosition, b.mesh.position);
+    if (remoteHit) {
+      sendRemoteHit(remoteHit.actor, remoteHit.point);
+      particles.push(...spawnHitEffect(remoteHit.point));
+      particles.push(...spawnBloodEffect(remoteHit.point));
+      scene.remove(b.mesh);
+      bullets.splice(i, 1);
+      continue;
+    }
 
     if (b.life <= 0) {
       scene.remove(b.mesh);
