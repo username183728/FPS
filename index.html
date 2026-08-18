@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, orientation=landscape">
-<title>FPS PS1 Retro - Kompleks 40x40 / 10 Player</title>
+<title>NIGHTFALL PROTOCOL // Online Combat</title>
 <style>
   html, body {
     margin: 0;
@@ -2034,6 +2034,1353 @@
       #combatHud { right: 12px; bottom: 12px; min-width: 148px; }
     }
   </style>
+  <style id="nightfall-command-ui">
+    /* ===== NIGHTFALL COMMAND UI =====
+       A deliberately low-poly military game layer: hard edges, scanlines,
+       brass/teal status lights, and readable hierarchy at low resolution. */
+    :root {
+      --nf-ink: #e9f0e5;
+      --nf-muted: #8ea49a;
+      --nf-dim: #425b52;
+      --nf-panel: rgba(4, 15, 13, .9);
+      --nf-line: rgba(145, 201, 182, .26);
+      --nf-teal: #79d1bc;
+      --nf-orange: #ee8d45;
+      --nf-brass: #d2b46b;
+      --nf-red: #d95a48;
+      --nf-mono: "Roboto Mono", Consolas, monospace;
+    }
+
+    #authRoomOverlay:has(#roomScreen.active) {
+      padding: clamp(12px, 2.6vw, 34px);
+      background:
+        linear-gradient(120deg, rgba(7, 26, 23, .82), transparent 46%),
+        radial-gradient(circle at 62% 44%, rgba(59, 117, 99, .2), transparent 31%),
+        radial-gradient(circle at 94% 12%, rgba(194, 78, 30, .2), transparent 25%),
+        #050c0b;
+    }
+    #authRoomOverlay:has(#roomScreen.active)::before {
+      opacity: .3;
+      background-size: 34px 34px;
+      mask-image: linear-gradient(120deg, black 14%, transparent 75%);
+    }
+    #authRoomOverlay:has(#roomScreen.active)::after {
+      background:
+        repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(188, 218, 199, .04) 4px),
+        radial-gradient(ellipse at center, transparent 36%, rgba(0, 0, 0, .8));
+    }
+    #authRoomOverlay:has(#roomScreen.active) .mpCard {
+      width: min(1320px, 100%);
+      min-height: min(760px, 100%);
+      padding: clamp(18px, 3vw, 40px);
+      border: 1px solid rgba(151, 215, 193, .28);
+      background:
+        linear-gradient(90deg, rgba(12, 30, 26, .74), rgba(4, 12, 11, .86)),
+        repeating-linear-gradient(135deg, rgba(165, 201, 181, .03) 0 1px, transparent 1px 10px);
+      box-shadow: 12px 12px 0 rgba(0, 0, 0, .26), 0 30px 100px rgba(0, 0, 0, .55);
+    }
+    #roomScreen.lobbyScreen.active {
+      min-height: clamp(520px, 78vh, 710px);
+      justify-content: initial;
+    }
+    #roomScreen.lobbyScreen::before {
+      top: 16%;
+      right: 28%;
+      width: clamp(260px, 36vw, 580px);
+      height: clamp(260px, 36vw, 580px);
+      border-color: rgba(121, 209, 188, .17);
+      box-shadow:
+        0 0 0 34px rgba(121, 209, 188, .035),
+        0 0 0 68px rgba(121, 209, 188, .025),
+        inset 0 0 46px rgba(121, 209, 188, .06);
+    }
+    #roomScreen.lobbyScreen::after {
+      content: "06";
+      top: 9%;
+      right: 33%;
+      color: rgba(197, 226, 208, .055);
+      font-size: clamp(180px, 25vw, 360px);
+      font-family: "Arial Black", Impact, sans-serif;
+      letter-spacing: -.15em;
+      transform: rotate(-8deg);
+    }
+    .nf-lobby-header {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: clamp(16px, 3vw, 44px);
+      padding: 0 0 17px;
+      border-bottom: 1px solid rgba(151, 216, 205, .22);
+    }
+    .nf-brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--nf-ink);
+      font: 900 12px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .nf-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 45px;
+      height: 30px;
+      color: #081210;
+      background: var(--nf-teal);
+      font: 900 13px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: -1px;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    }
+    .nf-brand-lockup small {
+      display: block;
+      margin-top: 4px;
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1.5px;
+    }
+    .nf-lobby-nav {
+      display: flex;
+      justify-content: center;
+      gap: clamp(12px, 2vw, 28px);
+    }
+    .nf-lobby-nav button {
+      position: relative;
+      padding: 8px 2px;
+      border: 0;
+      background: transparent;
+      color: rgba(220, 237, 225, .46);
+      font: 800 9px/1 var(--nf-mono);
+      letter-spacing: 1.3px;
+      cursor: pointer;
+    }
+    .nf-lobby-nav button::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: var(--nf-orange);
+      transform: scaleX(0);
+      transition: transform .2s ease;
+    }
+    .nf-lobby-nav button:hover,
+    .nf-lobby-nav button.active { color: var(--nf-ink); }
+    .nf-lobby-nav button.active::after,
+    .nf-lobby-nav button:hover::after { transform: scaleX(1); }
+    .nf-header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1.3px;
+      white-space: nowrap;
+    }
+    .nf-header-status b { color: var(--nf-teal); }
+    .nf-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--nf-teal);
+      box-shadow: 0 0 0 4px rgba(121, 209, 188, .08), 0 0 12px var(--nf-teal);
+      animation: nfPulse 1.8s infinite;
+    }
+    .nf-lobby-grid {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+      gap: clamp(22px, 4vw, 68px);
+      flex: 1;
+      min-height: 0;
+      padding: clamp(24px, 4vh, 48px) 0 20px;
+    }
+    .nf-command-column {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .nf-kicker {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--nf-orange);
+      font: 800 9px/1 var(--nf-mono);
+      letter-spacing: 2.5px;
+    }
+    .nf-kicker::before {
+      content: "";
+      width: 32px;
+      height: 2px;
+      background: var(--nf-orange);
+    }
+    .nf-command-title {
+      max-width: 770px;
+      margin: 13px 0 5px;
+      color: var(--nf-ink);
+      font: 900 clamp(46px, 8.2vw, 104px)/.8 "Arial Black", Impact, sans-serif;
+      letter-spacing: -.08em;
+      text-shadow: 5px 5px 0 rgba(0, 0, 0, .44);
+    }
+    .nf-command-title em {
+      display: block;
+      color: var(--nf-orange);
+      font-size: .54em;
+      font-style: normal;
+      letter-spacing: -.02em;
+    }
+    .nf-command-copy {
+      max-width: 470px;
+      margin: 17px 0 23px;
+      color: rgba(220, 237, 225, .62);
+      font: 400 12px/1.65 Arial, sans-serif;
+    }
+    .nf-map-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      max-width: 690px;
+      min-height: 112px;
+      padding: 16px 18px;
+      overflow: hidden;
+      border: 1px solid rgba(144, 205, 185, .3);
+      border-left: 3px solid var(--nf-orange);
+      background:
+        linear-gradient(90deg, rgba(11, 43, 38, .92), rgba(9, 22, 20, .72)),
+        repeating-linear-gradient(145deg, rgba(220, 232, 209, .04) 0 2px, transparent 2px 9px);
+      box-shadow: 5px 5px 0 rgba(0, 0, 0, .2);
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+    }
+    .nf-map-card::before {
+      content: "DUSK DEPOT";
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      color: rgba(205, 235, 217, .08);
+      font: 900 72px/1 "Arial Black", Impact, sans-serif;
+      letter-spacing: -.08em;
+      transform: rotate(-7deg);
+    }
+    .nf-map-copy { position: relative; z-index: 1; }
+    .nf-map-copy small {
+      color: var(--nf-brass);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1.6px;
+    }
+    .nf-map-copy strong {
+      display: block;
+      margin-top: 9px;
+      color: var(--nf-ink);
+      font: 900 23px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: -.04em;
+    }
+    .nf-map-copy span {
+      display: block;
+      margin-top: 7px;
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf-map-stamp {
+      position: relative;
+      z-index: 1;
+      padding: 9px 10px;
+      border: 1px solid rgba(210, 180, 107, .56);
+      color: var(--nf-brass);
+      font: 800 8px/1.3 var(--nf-mono);
+      letter-spacing: 1px;
+      text-align: center;
+      transform: rotate(-4deg);
+    }
+    .nf-stat-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 23px;
+    }
+    .nf-stat-line .lobbyStat { min-width: 78px; }
+    .nf-stat-line .lobbyStat strong { font-size: 19px; }
+    .nf-stat-line .lobbyStat span { color: var(--nf-dim); }
+    .nf-mode-rail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 22px;
+    }
+    .nf-mode-button {
+      padding: 8px 10px;
+      border: 1px solid rgba(145, 201, 182, .23);
+      background: rgba(5, 20, 17, .65);
+      color: var(--nf-muted);
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+    .nf-mode-button:hover,
+    .nf-mode-button.active {
+      border-color: var(--nf-orange);
+      background: rgba(113, 48, 29, .46);
+      color: var(--nf-ink);
+    }
+    .nf-profile-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 360px;
+    }
+    .nf-panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(151, 216, 205, .19);
+    }
+    .nf-panel-heading span {
+      color: var(--nf-muted);
+      font: 800 9px/1 var(--nf-mono);
+      letter-spacing: 2px;
+    }
+    .nf-panel-heading b {
+      color: var(--nf-teal);
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf-avatar-block {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin: 17px 0 18px;
+    }
+    .nf-avatar-block .avatarFrame { width: 56px; height: 56px; }
+    .nf-avatar-copy { min-width: 0; }
+    .nf-avatar-copy b {
+      display: block;
+      overflow: hidden;
+      color: var(--nf-ink);
+      font: 900 18px/1 "Arial Black", Arial, sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .nf-avatar-copy span {
+      display: block;
+      margin-top: 6px;
+      color: var(--nf-teal);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf-rank-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 17px;
+    }
+    .nf-rank-badge {
+      display: grid;
+      place-items: center;
+      width: 29px;
+      height: 29px;
+      background: var(--nf-brass);
+      color: #121410;
+      font: 900 11px/1 Arial, sans-serif;
+      clip-path: polygon(50% 0, 100% 24%, 90% 84%, 50% 100%, 10% 84%, 0 24%);
+    }
+    .nf-rank-track {
+      height: 5px;
+      border: 1px solid rgba(145, 201, 182, .31);
+      background: rgba(2, 10, 9, .8);
+    }
+    .nf-rank-track i {
+      display: block;
+      width: 68%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--nf-orange), var(--nf-brass));
+    }
+    .nf-rank-row small {
+      color: var(--nf-brass);
+      font: 800 8px/1 var(--nf-mono);
+    }
+    .nf-mini-loadout {
+      display: grid;
+      grid-template-columns: 1fr 60px;
+      gap: 10px;
+      margin-top: auto;
+      padding: 13px;
+      border: 1px solid rgba(145, 201, 182, .21);
+      background: rgba(2, 11, 10, .58);
+    }
+    .nf-mini-loadout small {
+      color: var(--nf-orange);
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1.4px;
+    }
+    .nf-mini-loadout strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--nf-ink);
+      font: 900 12px/1 "Arial Black", Arial, sans-serif;
+    }
+    .nf-mini-loadout span {
+      display: block;
+      margin-top: 6px;
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+    }
+    .nf-weapon-icon {
+      position: relative;
+      align-self: center;
+      height: 20px;
+      background: var(--nf-brass);
+      clip-path: polygon(0 42%, 27% 42%, 36% 0, 42% 0, 49% 42%, 100% 42%, 100% 62%, 62% 62%, 51% 100%, 45% 100%, 45% 62%, 0 62%);
+      opacity: .85;
+    }
+    .nf-weapon-icon::after {
+      content: "";
+      position: absolute;
+      right: 4px;
+      top: 7px;
+      width: 17px;
+      height: 3px;
+      background: #101816;
+    }
+    .nf-queue-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf-queue-note i {
+      width: 7px;
+      height: 7px;
+      border: 1px solid var(--nf-teal);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2px rgba(121, 209, 188, .18);
+    }
+    .nf-bottom-strip {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(151, 216, 205, .18);
+    }
+    .nf-build-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: var(--nf-dim);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf-build-info b { color: var(--nf-brass); }
+    #roomScreen.lobbyScreen .lobbyStartBtn {
+      min-width: 236px;
+      margin: 0;
+    }
+    #roomScreen.lobbyScreen .lobbyStartBtn span { letter-spacing: 1px; }
+
+    /* In-game: an extra tactical strip keeps the FPS HUD legible without
+       covering the low-poly scene. */
+    #nf-in-game-strip {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      z-index: 14;
+      display: none;
+      align-items: center;
+      gap: 16px;
+      padding: 7px 10px;
+      border: 1px solid rgba(145, 201, 182, .28);
+      border-right: 2px solid var(--nf-orange);
+      background: rgba(4, 17, 15, .76);
+      color: var(--nf-muted);
+      font: 700 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+      box-shadow: 4px 4px 0 rgba(0, 0, 0, .22);
+      pointer-events: none;
+    }
+    #nf-in-game-strip strong { color: var(--nf-ink); }
+    body.game-started #nf-in-game-strip { display: flex; }
+    #nf-squad-status {
+      position: fixed;
+      top: 171px;
+      left: 20px;
+      z-index: 12;
+      display: none;
+      width: 154px;
+      padding: 8px 9px;
+      border-left: 2px solid var(--nf-teal);
+      background: rgba(4, 17, 15, .68);
+      color: var(--nf-muted);
+      font: 700 8px/1.55 var(--nf-mono);
+      letter-spacing: .7px;
+      pointer-events: none;
+    }
+    body.game-started #nf-squad-status { display: block; }
+    #nf-squad-status b { color: var(--nf-ink); }
+    .nf-squad-line { display: flex; justify-content: space-between; gap: 10px; }
+    .nf-squad-line i {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-right: 5px;
+      border-radius: 50%;
+      background: var(--nf-teal);
+      box-shadow: 0 0 8px var(--nf-teal);
+    }
+    #nf-weapon-label {
+      position: fixed;
+      right: 22px;
+      bottom: 105px;
+      z-index: 14;
+      display: none;
+      color: rgba(230, 240, 226, .7);
+      font: 800 9px/1.4 var(--nf-mono);
+      letter-spacing: 1.2px;
+      text-align: right;
+      pointer-events: none;
+    }
+    body.game-started #nf-weapon-label { display: block; }
+    #nf-weapon-label strong {
+      display: block;
+      color: var(--nf-brass);
+      font: 900 16px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: -.03em;
+    }
+    #nf-weapon-label span { color: var(--nf-teal); }
+    @keyframes nfPulse {
+      0%, 100% { opacity: .75; transform: scale(.92); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+    @media (max-width: 900px) {
+      .nf-lobby-header { grid-template-columns: auto 1fr; }
+      .nf-header-status { display: none; }
+      .nf-lobby-nav { justify-content: flex-end; }
+      .nf-lobby-grid { gap: 22px; }
+      .nf-profile-panel { min-height: 310px; }
+    }
+    @media (max-width: 680px) {
+      #authRoomOverlay:has(#roomScreen.active) .mpCard { padding: 15px; }
+      .nf-lobby-header { gap: 10px; padding-bottom: 12px; }
+      .nf-brand-lockup { font-size: 9px; gap: 7px; }
+      .nf-brand-mark { width: 36px; height: 25px; font-size: 10px; }
+      .nf-lobby-nav { gap: 9px; }
+      .nf-lobby-nav button { font-size: 7px; letter-spacing: .7px; }
+      .nf-lobby-nav button:nth-child(n+4) { display: none; }
+      .nf-lobby-grid { grid-template-columns: 1fr; overflow: auto; padding-top: 20px; }
+      .nf-command-title { font-size: clamp(45px, 15vw, 74px); }
+      .nf-command-copy { margin: 12px 0 16px; font-size: 10px; }
+      .nf-map-card { min-height: 96px; }
+      .nf-stat-line { margin-top: 15px; gap: 14px; }
+      .nf-mode-rail { margin-top: 14px; }
+      .nf-profile-panel { min-height: 285px; }
+      .nf-bottom-strip { align-items: stretch; flex-direction: column; }
+      #roomScreen.lobbyScreen .lobbyStartBtn { width: 100%; min-width: 0; }
+      #nf-in-game-strip { top: 12px; right: 12px; font-size: 7px; }
+      #nf-squad-status { top: 124px; left: 12px; width: 126px; }
+      #nf-weapon-label { right: 12px; bottom: 88px; }
+    }
+  </style>
+  <style id="nightfall-v2-ui">
+    /* ===== CLEAN MODERN GAME SHELL ===== */
+    #authRoomOverlay:has(#roomScreen.active) {
+      padding: 0;
+      background:
+        radial-gradient(circle at 54% 38%, rgba(56, 103, 91, .2), transparent 34%),
+        linear-gradient(116deg, #07110f 0%, #0b1715 49%, #11110f 100%);
+    }
+    #authRoomOverlay:has(#roomScreen.active)::before {
+      opacity: .14;
+      background-size: 48px 48px;
+      mask-image: linear-gradient(110deg, black, transparent 72%);
+    }
+    #authRoomOverlay:has(#roomScreen.active)::after {
+      background:
+        repeating-linear-gradient(0deg, transparent 0, transparent 5px, rgba(220, 239, 224, .035) 6px),
+        radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, .68));
+    }
+    #authRoomOverlay:has(#roomScreen.active) .mpCard {
+      width: min(1440px, 100%);
+      height: 100%;
+      min-height: 0;
+      padding: clamp(18px, 3vw, 42px) clamp(20px, 4vw, 58px) clamp(16px, 2.4vw, 30px);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      clip-path: none;
+    }
+    #authRoomOverlay:has(#roomScreen.active) .mpCard::before,
+    #authRoomOverlay:has(#roomScreen.active) .mpCard::after {
+      display: none;
+    }
+    #roomScreen.lobbyScreen.active {
+      display: flex;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      color: #ecf2e9;
+      animation: tacticalScreenIn .45s ease both;
+    }
+    #roomScreen.lobbyScreen::before,
+    #roomScreen.lobbyScreen::after { display: none; }
+
+    .nf2-topbar {
+      display: grid;
+      grid-template-columns: 220px 1fr 220px;
+      align-items: center;
+      min-height: 52px;
+      border-bottom: 1px solid rgba(151, 207, 187, .16);
+    }
+    .nf2-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: #eaf2e8;
+      font: 900 13px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: 1px;
+    }
+    .nf2-brand small {
+      display: block;
+      margin-top: 5px;
+      color: #71897d;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: 1.4px;
+    }
+    .nf2-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 35px;
+      height: 28px;
+      background: #e9934c;
+      color: #151a16;
+      font: 900 12px/1 "Arial Black", Arial, sans-serif;
+      clip-path: polygon(0 0, 100% 0, 84% 100%, 0 100%);
+    }
+    .nf2-nav {
+      display: flex;
+      justify-content: center;
+      gap: clamp(18px, 3vw, 40px);
+    }
+    .nf2-nav button {
+      position: relative;
+      padding: 18px 0 16px;
+      border: 0;
+      background: transparent;
+      color: #768d83;
+      font: 800 9px/1 var(--nf-mono);
+      letter-spacing: 1.1px;
+      cursor: pointer;
+    }
+    .nf2-nav button::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 0;
+      height: 2px;
+      background: #e9934c;
+      transform: scaleX(0);
+      transition: transform .2s ease;
+    }
+    .nf2-nav button:hover,
+    .nf2-nav button.active { color: #f0f5ed; }
+    .nf2-nav button:hover::after,
+    .nf2-nav button.active::after { transform: scaleX(1); }
+    .nf2-network {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 9px;
+      color: #8da49a;
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf2-network i,
+    .nf2-panel-top b i,
+    .nf2-player span i,
+    .nf2-ready-status i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #77caae;
+      box-shadow: 0 0 9px rgba(119, 202, 174, .8);
+    }
+    .nf2-network b { color: #d2b46e; }
+    .nf2-lobby-layout {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr) minmax(285px, 340px);
+      flex: 1;
+      min-height: 0;
+      gap: clamp(25px, 4vw, 68px);
+      padding: clamp(22px, 4vh, 44px) 0 24px;
+    }
+    .nf2-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding-top: 4px;
+      border-right: 1px solid rgba(151, 207, 187, .14);
+    }
+    .nf2-rail-label {
+      margin-bottom: 8px;
+      color: #516960;
+      font: 800 7px/1 var(--nf-mono);
+      letter-spacing: 1.4px;
+      writing-mode: vertical-rl;
+    }
+    .nf2-rail button {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 52px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #627a70;
+      cursor: pointer;
+    }
+    .nf2-rail button b {
+      color: #456158;
+      font: 800 7px/1 var(--nf-mono);
+    }
+    .nf2-rail button span {
+      margin-top: 5px;
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: .5px;
+    }
+    .nf2-rail button.active,
+    .nf2-rail button:hover {
+      border-color: rgba(233, 147, 76, .5);
+      background: rgba(233, 147, 76, .08);
+      color: #ecf2e9;
+    }
+    .nf2-rail button.active b { color: #e9934c; }
+    .nf2-rail-season {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-top: auto;
+      color: #6e8b7e;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .8px;
+      text-align: center;
+    }
+    .nf2-rail-season strong {
+      color: #d2b46e;
+      font: 900 21px/1 "Arial Black", Arial, sans-serif;
+    }
+    .nf2-rail-season span { font-size: 6px; }
+    .nf2-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+    .nf2-stage-meta {
+      display: flex;
+      justify-content: space-between;
+      color: #718a7e;
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1.2px;
+    }
+    .nf2-stage-meta b { color: #d2b46e; font-weight: 800; }
+    .nf2-stage-copy {
+      position: relative;
+      z-index: 2;
+      margin-top: clamp(25px, 5vh, 52px);
+    }
+    .nf2-overline {
+      color: #e9934c;
+      font: 800 9px/1 var(--nf-mono);
+      letter-spacing: 2px;
+    }
+    .nf2-stage-copy h1 {
+      margin: 11px 0 10px;
+      color: #edf4ea;
+      font: 900 clamp(50px, 7vw, 92px)/.8 "Arial Black", Impact, sans-serif;
+      letter-spacing: -.085em;
+      text-shadow: 4px 5px 0 rgba(0, 0, 0, .4);
+    }
+    .nf2-stage-copy h1 span {
+      display: block;
+      color: #e9934c;
+      font-size: .61em;
+      letter-spacing: -.06em;
+    }
+    .nf2-stage-copy p {
+      margin: 0;
+      color: #849b90;
+      font: 400 11px/1.5 Arial, sans-serif;
+    }
+    .nf2-stage-art {
+      position: relative;
+      flex: 1;
+      min-height: 220px;
+      margin-top: -22px;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(151, 207, 187, .18);
+      background:
+        linear-gradient(180deg, rgba(21, 44, 38, .08), rgba(6, 16, 14, .85)),
+        linear-gradient(110deg, rgba(18, 60, 52, .32), transparent 45%);
+      clip-path: polygon(0 7%, 90% 0, 100% 13%, 100% 100%, 0 100%);
+    }
+    .nf2-art-grid {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 62%;
+      opacity: .32;
+      background:
+        linear-gradient(28deg, transparent 49.5%, rgba(144, 196, 173, .26) 50%, transparent 50.5%) 0 0 / 54px 34px,
+        linear-gradient(152deg, transparent 49.5%, rgba(144, 196, 173, .18) 50%, transparent 50.5%) 0 0 / 54px 34px;
+      transform: perspective(210px) rotateX(58deg) scale(1.2);
+      transform-origin: bottom;
+    }
+    .nf2-art-sun {
+      position: absolute;
+      top: 12%;
+      left: 49%;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(225, 156, 84, .65), rgba(180, 82, 43, .08) 65%, transparent 70%);
+      filter: blur(1px);
+    }
+    .nf2-art-building {
+      position: absolute;
+      bottom: 28%;
+      background: linear-gradient(135deg, #37544a, #152b25);
+      border: 1px solid rgba(163, 206, 181, .2);
+      box-shadow: 7px 7px 0 rgba(4, 11, 10, .36);
+      clip-path: polygon(0 12%, 82% 0, 100% 12%, 100% 100%, 0 100%);
+    }
+    .nf2-building-a { left: 5%; width: 27%; height: 28%; }
+    .nf2-building-b { right: 3%; width: 24%; height: 42%; background: linear-gradient(135deg, #30463e, #10231f); }
+    .nf2-operator {
+      position: absolute;
+      z-index: 2;
+      bottom: 3%;
+      left: 51%;
+      width: 142px;
+      height: 280px;
+      transform: translateX(-50%);
+      filter: drop-shadow(12px 10px 0 rgba(0, 0, 0, .25));
+    }
+    .nf2-operator-head {
+      position: absolute;
+      top: 4%;
+      left: 42px;
+      width: 52px;
+      height: 65px;
+      background: linear-gradient(135deg, #879a82 0 35%, #35443c 36% 100%);
+      border: 2px solid #192821;
+      clip-path: polygon(28% 0, 81% 7%, 100% 34%, 86% 100%, 17% 100%, 0 45%);
+    }
+    .nf2-operator-head::before {
+      content: "";
+      position: absolute;
+      top: 28px;
+      left: 4px;
+      width: 46px;
+      height: 9px;
+      background: #121b18;
+      border-top: 2px solid #d2b46e;
+    }
+    .nf2-operator-body {
+      position: absolute;
+      top: 27%;
+      left: 14px;
+      width: 112px;
+      height: 45%;
+      background: linear-gradient(110deg, #253a32, #6e806c 48%, #1d2b27 49%);
+      border: 2px solid #17231f;
+      clip-path: polygon(22% 0, 78% 0, 100% 22%, 90% 100%, 9% 100%, 0 23%);
+    }
+    .nf2-operator-body::before,
+    .nf2-operator-body::after {
+      content: "";
+      position: absolute;
+      top: 20%;
+      width: 22px;
+      height: 67%;
+      background: #1e3029;
+      border: 2px solid #17231f;
+    }
+    .nf2-operator-body::before { left: -17px; transform: rotate(12deg); }
+    .nf2-operator-body::after { right: -17px; transform: rotate(-12deg); }
+    .nf2-operator-rifle {
+      position: absolute;
+      z-index: 3;
+      top: 50%;
+      right: -40px;
+      width: 140px;
+      height: 12px;
+      background: #111a17;
+      border-top: 3px solid #c1a76a;
+      transform: rotate(-13deg);
+      box-shadow: 0 11px 0 -3px #1d2a24;
+    }
+    .nf2-art-stamp {
+      position: absolute;
+      top: 18%;
+      right: 8%;
+      padding: 8px 10px;
+      border: 1px solid rgba(210, 180, 110, .58);
+      color: #d2b46e;
+      font: 800 8px/1.4 var(--nf-mono);
+      letter-spacing: 1px;
+      transform: rotate(8deg);
+    }
+    .nf2-art-location {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      color: #99b2a3;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf2-art-location i {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-right: 5px;
+      border-radius: 50%;
+      background: #e9934c;
+    }
+    .nf2-stage-footer {
+      display: flex;
+      gap: clamp(20px, 4vw, 46px);
+      padding-top: 15px;
+    }
+    .nf2-stage-footer div {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .nf2-stage-footer strong {
+      color: #e9f1e8;
+      font: 900 13px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: -.02em;
+    }
+    .nf2-stage-footer span {
+      color: #5d776b;
+      font: 800 7px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf2-ready-panel {
+      align-self: start;
+      padding: 18px;
+      border: 1px solid rgba(151, 207, 187, .24);
+      border-top: 2px solid #e9934c;
+      background: rgba(8, 21, 18, .82);
+      box-shadow: 7px 7px 0 rgba(0, 0, 0, .18);
+    }
+    .nf2-panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(151, 207, 187, .16);
+      color: #dae6dc;
+      font: 900 11px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: .6px;
+    }
+    .nf2-panel-top b {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #77caae;
+      font: 800 7px/1 var(--nf-mono);
+      letter-spacing: 1px;
+    }
+    .nf2-player {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 18px 0;
+    }
+    .nf2-player .avatarFrame {
+      width: 48px;
+      height: 48px;
+    }
+    .nf2-player strong {
+      display: block;
+      overflow: hidden;
+      max-width: 190px;
+      color: #edf4ea;
+      font: 900 15px/1 "Arial Black", Arial, sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .nf2-player small {
+      display: block;
+      margin-top: 4px;
+      color: #567267;
+      font: 700 8px/1 var(--nf-mono);
+    }
+    .nf2-player span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      color: #77caae;
+      font: 700 7px/1 var(--nf-mono);
+    }
+    .nf2-ready-panel > label {
+      display: block;
+      margin-bottom: 7px;
+      color: #6d887b;
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1.3px;
+    }
+    .nf2-input {
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(151, 207, 187, .24);
+      background: rgba(2, 9, 8, .7);
+    }
+    .nf2-input > span {
+      padding-left: 11px;
+      color: #e9934c;
+      font: 900 17px/1 Arial, sans-serif;
+    }
+    .nf2-input .mpInput {
+      border: 0;
+      border-radius: 0;
+      padding: 11px 9px;
+      background: transparent;
+      font-size: 11px;
+    }
+    .nf2-panel-divider {
+      height: 1px;
+      margin: 18px 0;
+      background: rgba(151, 207, 187, .14);
+    }
+    .nf2-section-label {
+      margin-bottom: 9px;
+      color: #6d887b;
+      font: 800 8px/1 var(--nf-mono);
+      letter-spacing: 1.3px;
+    }
+    .nf2-playlist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nf2-playlist .nf-mode-button {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      column-gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(151, 207, 187, .16);
+      background: rgba(4, 14, 12, .65);
+      color: #81988d;
+      text-align: left;
+    }
+    .nf2-playlist .nf-mode-button > span {
+      grid-row: 1 / span 2;
+      color: #536e62;
+      font: 800 8px/1 var(--nf-mono);
+    }
+    .nf2-playlist .nf-mode-button b {
+      color: #d7e3d8;
+      font: 900 9px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: .3px;
+    }
+    .nf2-playlist .nf-mode-button small {
+      margin-top: 4px;
+      color: #587267;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .5px;
+    }
+    .nf2-playlist .nf-mode-button.active,
+    .nf2-playlist .nf-mode-button:hover {
+      border-color: rgba(233, 147, 76, .7);
+      background: rgba(124, 59, 32, .24);
+    }
+    .nf2-playlist .nf-mode-button.active > span,
+    .nf2-playlist .nf-mode-button.active small { color: #e9934c; }
+    .nf2-selected-loadout {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 13px;
+      padding: 10px;
+      border: 1px solid rgba(151, 207, 187, .15);
+      background: rgba(2, 10, 9, .58);
+    }
+    .nf2-selected-loadout span,
+    .nf2-selected-loadout small {
+      display: block;
+      color: #6d887b;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .8px;
+    }
+    .nf2-selected-loadout strong {
+      display: block;
+      margin: 5px 0;
+      color: #e4ede3;
+      font: 900 10px/1 "Arial Black", Arial, sans-serif;
+    }
+    .nf2-selected-loadout i {
+      width: 52px;
+      height: 16px;
+      background: #c9ac6d;
+      clip-path: polygon(0 42%, 28% 42%, 38% 0, 44% 0, 50% 42%, 100% 42%, 100% 61%, 59% 61%, 48% 100%, 42% 100%, 42% 61%, 0 61%);
+      opacity: .75;
+    }
+    .nf2-ready-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      color: #8ca59a;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .6px;
+    }
+    .nf2-ready-panel .mpStatus {
+      min-height: 26px;
+      margin: 9px 0 5px;
+      color: #779085;
+      font-size: 9px;
+      line-height: 1.4;
+    }
+    #roomScreen.lobbyScreen .lobbyStartBtn {
+      position: static;
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      min-height: 46px;
+      margin: 0;
+      padding: 0 13px;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #f4b77d;
+      border-radius: 0;
+      background: #e9934c;
+      color: #171b15;
+      box-shadow: 4px 4px 0 rgba(64, 36, 23, .55);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    }
+    #roomScreen.lobbyScreen .lobbyStartBtn span {
+      font: 900 12px/1 "Arial Black", Arial, sans-serif;
+      letter-spacing: .5px;
+    }
+    #roomScreen.lobbyScreen .lobbyStartBtn small {
+      color: rgba(23, 27, 21, .65);
+      font: 800 7px/1 var(--nf-mono);
+      letter-spacing: .7px;
+    }
+    #roomScreen.lobbyScreen .lobbyStartBtn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-2px);
+    }
+    #roomScreen.lobbyScreen .lobbyLogout {
+      width: auto;
+      margin: 12px 0 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #61786d;
+      font-size: 8px;
+      text-align: left;
+    }
+    #roomScreen.lobbyScreen .lobbyLogout:hover { color: #e9934c; }
+    .nf2-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #4f695e;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .9px;
+    }
+    .nf2-footer span:first-child { color: #b3945b; }
+
+    /* In-game support layer: readable at a glance and intentionally quieter
+       than the scene, weapon, and crosshair. */
+    #nf2-objective-card {
+      position: fixed;
+      top: 87px;
+      left: 50%;
+      z-index: 14;
+      display: none;
+      width: 210px;
+      padding: 10px 12px;
+      border: 1px solid rgba(151, 207, 187, .3);
+      border-left: 2px solid #e9934c;
+      background: rgba(5, 16, 14, .78);
+      box-shadow: 4px 4px 0 rgba(0, 0, 0, .2);
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    body.game-started #nf2-objective-card { display: block; }
+    .nf2-objective-head {
+      display: flex;
+      justify-content: space-between;
+      color: #7f988b;
+      font: 800 7px/1 var(--nf-mono);
+      letter-spacing: 1.2px;
+    }
+    .nf2-objective-head b { color: #77caae; }
+    #nf2-objective-card > strong {
+      display: block;
+      margin-top: 7px;
+      color: #e5eee4;
+      font: 900 12px/1 "Arial Black", Arial, sans-serif;
+    }
+    .nf2-objective-progress {
+      height: 4px;
+      margin-top: 9px;
+      background: rgba(151, 207, 187, .15);
+    }
+    .nf2-objective-progress i {
+      display: block;
+      width: 35%;
+      height: 100%;
+      background: #e9934c;
+    }
+    #nf2-objective-card small {
+      display: block;
+      margin-top: 7px;
+      color: #627c70;
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .7px;
+    }
+    #nf2-killfeed {
+      position: fixed;
+      top: 94px;
+      right: 22px;
+      z-index: 14;
+      display: none;
+      min-width: 184px;
+      padding: 8px 10px;
+      border-right: 2px solid #d95a48;
+      background: rgba(5, 16, 14, .62);
+      pointer-events: none;
+    }
+    body.game-started #nf2-killfeed { display: block; }
+    #nf2-killfeed div {
+      display: grid;
+      grid-template-columns: 34px auto 12px auto;
+      gap: 6px;
+      align-items: center;
+      margin: 3px 0;
+      color: #90a79a;
+      font: 700 7px/1 var(--nf-mono);
+    }
+    #nf2-killfeed b { color: #e4ede4; }
+    .nf2-kill-time { color: #5f776b; }
+    #nf2-killfeed i {
+      width: 8px;
+      height: 2px;
+      background: #d95a48;
+      transform: rotate(-25deg);
+    }
+    #nf2-hud-bottom {
+      position: fixed;
+      right: 22px;
+      bottom: 12px;
+      left: 22px;
+      z-index: 14;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      color: rgba(197, 220, 204, .48);
+      font: 700 7px/1 var(--nf-mono);
+      letter-spacing: .7px;
+      pointer-events: none;
+    }
+    body.game-started #nf2-hud-bottom { display: flex; }
+    #nf2-hud-bottom b {
+      padding: 2px 4px;
+      border: 1px solid rgba(151, 207, 187, .3);
+      color: #d2b46e;
+    }
+    .nf2-hud-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #77caae;
+    }
+    .nf2-hud-center i {
+      width: 26px;
+      height: 1px;
+      background: rgba(119, 202, 174, .42);
+    }
+    @media (max-width: 900px) {
+      #authRoomOverlay:has(#roomScreen.active) .mpCard {
+        padding: 16px 22px 18px;
+      }
+      .nf2-topbar { grid-template-columns: 180px 1fr; }
+      .nf2-network { display: none; }
+      .nf2-lobby-layout { gap: 24px; grid-template-columns: 54px minmax(0, 1fr) 270px; }
+      .nf2-ready-panel { padding: 14px; }
+      .nf2-stage-copy h1 { font-size: clamp(48px, 8vw, 72px); }
+      .nf2-operator { transform: translateX(-50%) scale(.84); transform-origin: bottom; }
+    }
+    @media (max-width: 680px) {
+      #authRoomOverlay:has(#roomScreen.active) .mpCard { padding: 12px 14px; }
+      .nf2-topbar { min-height: 42px; grid-template-columns: 1fr auto; }
+      .nf2-brand { font-size: 10px; }
+      .nf2-brand-mark { width: 30px; height: 23px; font-size: 10px; }
+      .nf2-brand small { font-size: 6px; }
+      .nf2-nav { display: none; }
+      .nf2-network { display: flex; font-size: 7px; }
+      .nf2-lobby-layout {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        overflow: auto;
+        padding: 18px 0 15px;
+      }
+      .nf2-rail {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-items: center;
+        gap: 5px;
+        padding: 0 0 10px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(151, 207, 187, .14);
+      }
+      .nf2-rail-label,
+      .nf2-rail-season { display: none; }
+      .nf2-rail button { width: auto; height: 32px; }
+      .nf2-rail button span { margin: 0; }
+      .nf2-rail button b { display: none; }
+      .nf2-stage { min-height: 370px; }
+      .nf2-stage-copy { margin-top: 22px; }
+      .nf2-stage-copy h1 { font-size: clamp(49px, 16vw, 70px); }
+      .nf2-stage-art { min-height: 190px; margin-top: -8px; }
+      .nf2-operator { transform: translateX(-50%) scale(.62); }
+      .nf2-stage-footer { gap: 16px; padding-top: 10px; }
+      .nf2-stage-footer strong { font-size: 10px; }
+      .nf2-stage-footer span { font-size: 6px; }
+      .nf2-ready-panel { margin-bottom: 3px; }
+      .nf2-footer { display: none; }
+      #nf2-objective-card { top: 75px; width: 170px; }
+      #nf2-killfeed { top: 75px; right: 12px; min-width: 155px; }
+      #nf2-hud-bottom { right: 12px; bottom: 8px; left: 12px; font-size: 6px; }
+      #nf2-hud-bottom > span:first-child,
+      #nf2-hud-bottom > span:last-child { display: none; }
+    }
+  </style>
 </head>
 <body>
 <div id="authRoomOverlay">
@@ -2050,46 +3397,73 @@
       <button id="enterLobbyBtn" class="mpBtn primary">MASUK KE LOBBY</button>
     </div>
     <div id="roomScreen" class="mpScreen lobbyScreen">
-      <div class="lobbyTopbar">
-        <div class="lobbyBrand"><span class="brandMark">FPS</span><span>ONLINE COMBAT</span></div>
-        <div class="lobbyTopStatus"><span class="statusDot"></span> SERVER ONLINE <b>10 PLAYER MAX</b></div>
-      </div>
-      <div class="lobbyContent">
-        <section class="lobbyHero">
-          <div class="lobbyEyebrow">SEASON 01 <span>//</span> OPERATION NIGHTFALL</div>
-          <h1>LOBBY<span>READY?</span></h1>
-          <p class="lobbyLead">Masuk ke map yang tersedia dan buktikan siapa yang paling terakhir bertahan.</p>
-          <div class="lobbyStatRow">
-            <div class="lobbyStat"><strong>10</strong><span>MAX PLAYERS</span></div>
-            <div class="lobbyStat"><strong>40M</strong><span>COMBAT ZONE</span></div>
-            <div class="lobbyStat"><strong>PVP</strong><span>FREE FOR ALL</span></div>
+      <header class="nf2-topbar">
+        <div class="nf2-brand"><span class="nf2-brand-mark">NF</span><span>NIGHTFALL<small>ONLINE COMBAT</small></span></div>
+        <nav class="nf2-nav" aria-label="Navigasi lobby">
+          <button type="button" class="active" data-lobby-tab="PLAY">PLAY</button>
+          <button type="button" data-lobby-tab="LOADOUT">LOADOUT</button>
+          <button type="button" data-lobby-tab="OPERATORS">OPERATORS</button>
+          <button type="button" data-lobby-tab="STORE">STORE</button>
+        </nav>
+        <div class="nf2-network"><i></i><span>ONLINE</span><b>38 MS</b></div>
+      </header>
+      <div class="nf2-lobby-layout">
+        <aside class="nf2-rail" aria-label="Menu game">
+          <span class="nf2-rail-label">MENU</span>
+          <button class="active" type="button" data-lobby-tab="PLAY"><b>01</b><span>PLAY</span></button>
+          <button type="button" data-lobby-tab="LOADOUT"><b>02</b><span>GEAR</span></button>
+          <button type="button" data-lobby-tab="OPERATORS"><b>03</b><span>OPS</span></button>
+          <div class="nf2-rail-season"><small>SEASON</small><strong>01</strong><span>NIGHTFALL</span></div>
+        </aside>
+        <main class="nf2-stage">
+          <div class="nf2-stage-meta"><span>FEATURED OPERATION</span><b>SECTOR 06 / MAP 01</b></div>
+          <div class="nf2-stage-copy">
+            <span class="nf2-overline">OPERATION NIGHTFALL</span>
+            <h1>DUSK<span>DEPOT</span></h1>
+            <p>Industrial yard. Low visibility. No room for hesitation.</p>
           </div>
-          <div class="lobbySignal">
-            <span class="signalBars"><i></i><i></i><i></i><i></i></span>
-            <span>LOW LATENCY MATCHMAKING</span>
+          <div class="nf2-stage-art" aria-label="Pratinjau operator di map Dusk Depot">
+            <div class="nf2-art-grid"></div>
+            <div class="nf2-art-sun"></div>
+            <div class="nf2-art-building nf2-building-a"></div>
+            <div class="nf2-art-building nf2-building-b"></div>
+            <div class="nf2-operator">
+              <div class="nf2-operator-head"></div>
+              <div class="nf2-operator-body"></div>
+              <div class="nf2-operator-rifle"></div>
+            </div>
+            <div class="nf2-art-stamp">DEPOT<br><b>01</b></div>
+            <div class="nf2-art-location"><i></i> INDUSTRIAL YARD / 23:40</div>
           </div>
-        </section>
-        <section class="lobbyProfilePanel">
-          <div class="panelCorner panelCornerTop"></div>
-          <div class="profilePanelHeader"><span>PLAYER PROFILE</span><b>READY</b></div>
-          <div class="mpUser lobbyUser">
+          <div class="nf2-stage-footer">
+            <div><strong>10</strong><span>MAX OPERATORS</span></div>
+            <div><strong>FREE FOR ALL</strong><span>SELECTED PLAYLIST</span></div>
+            <div><strong>40 × 40</strong><span>COMBAT ZONE</span></div>
+          </div>
+        </main>
+        <aside class="nf2-ready-panel">
+          <div class="nf2-panel-top"><span>READY UP</span><b><i></i> ONLINE</b></div>
+          <div class="nf2-player">
             <div class="avatarFrame"><img id="mpAvatar" class="mpAvatar" alt=""><span class="avatarLevel">01</span></div>
-            <div class="lobbyUserCopy"><b id="mpName">PLAYER</b><div id="mpUid" class="mpSmall"></div><span class="onlineLabel"><i></i> ONLINE</span></div>
+            <div><strong id="mpName">PLAYER</strong><small id="mpUid"></small><span><i></i> OPERATOR ONLINE</span></div>
           </div>
-          <label for="characterNameInput" class="lobbyInputLabel">NAMA KARAKTER</label>
-          <div class="lobbyInputWrap"><span>#</span><input id="characterNameInput" class="mpInput" maxlength="20" placeholder="Masukkan nama karakter"></div>
-          <div class="loadoutStrip">
-            <div class="loadoutIcon">01</div>
-            <div><small>LOADOUT</small><strong>RECON RIFLE</strong></div>
-            <span class="loadoutArrow">›</span>
+          <label for="characterNameInput">CALLSIGN</label>
+          <div class="nf2-input"><span>#</span><input id="characterNameInput" class="mpInput" maxlength="20" placeholder="Masukkan nama karakter"></div>
+          <div class="nf2-panel-divider"></div>
+          <div class="nf2-section-label">PLAYLIST</div>
+          <div class="nf2-playlist">
+            <button type="button" class="active nf-mode-button" id="nf-mode-tdm" data-mode="FREE FOR ALL"><span>01</span><b>FREE FOR ALL</b><small>10 PLAYERS / FAST</small></button>
+            <button type="button" class="nf-mode-button" id="nf-mode-br" data-mode="LAST OPERATOR"><span>02</span><b>LAST OPERATOR</b><small>SURVIVE / ELIMINATE</small></button>
+            <button type="button" class="nf-mode-button" data-mode="NIGHT RAID"><span>03</span><b>NIGHT RAID</b><small>LOW VISIBILITY</small></button>
           </div>
-          <div id="roomStatus" class="mpStatus">Pilih nama lalu tekan MULAI. Kamu akan masuk ke map yang masih tersedia.</div>
+          <div class="nf2-selected-loadout"><div><span>PRIMARY</span><strong>RECON RIFLE</strong><small>5.56MM / OPTIC ONLINE</small></div><i></i></div>
+          <div class="nf2-ready-status"><i></i><span id="nf-queue-label">MATCHMAKING STANDING BY</span></div>
+          <div id="roomStatus" class="mpStatus">Pilih playlist lalu tekan MULAI MATCH.</div>
+          <button id="joinRoomBtn" class="mpBtn primary lobbyStartBtn"><span>MULAI MATCH</span><small>ENTER DUSK DEPOT&nbsp; ›</small></button>
           <button id="logoutBtn" class="mpBtn lobbyLogout">KELUAR AKUN</button>
-          <div class="panelCorner panelCornerBottom"></div>
-        </section>
+        </aside>
       </div>
-      <div class="lobbyBottomline"><span>BUILD 1.0.7</span><span>VOICE COMMS READY</span><span>LANDSCAPE MODE</span></div>
-      <button id="joinRoomBtn" class="mpBtn primary lobbyStartBtn"><span>MULAI MATCH</span><small>ENTER THE ZONE&nbsp; ›</small></button>
+      <footer class="nf2-footer"><span>BUILD 1.0.7 // LOW-POLY EDITION</span><span>VOICE COMMS READY</span><span>LANDSCAPE MODE</span></footer>
     </div>
     <div id="roomReadyScreen" class="mpScreen">
       <h1 id="readyTitle">ROOM SIAP</h1>
@@ -2101,10 +3475,21 @@
   </div>
 </div>
  <div id="roomInfoHud" style="display:none">MAP: <span id="roomHudCode">1</span> • PLAYERS: <span id="roomHudPlayers">1/10</span></div>
+ <div id="nf-in-game-strip" aria-hidden="true"><strong>SECTOR 06</strong><span>//</span><span>F</span><span>FREE FOR ALL</span><span>ALIVE <b id="nf-alive-count">10</b></span></div>
+ <div id="nf2-objective-card" aria-hidden="true">
+   <div class="nf2-objective-head"><span>OBJECTIVE</span><b>LIVE</b></div>
+   <strong>ELIMINATE HOSTILES</strong>
+   <div class="nf2-objective-progress"><i></i></div>
+   <small>DUSK DEPOT // SECTOR 06</small>
+ </div>
+ <div id="nf2-killfeed" aria-hidden="true">
+   <div><span class="nf2-kill-time">00:12</span><b>ROOK-07</b><i></i><span>GHOST-02</span></div>
+   <div><span class="nf2-kill-time">00:08</span><b>YOU</b><i></i><span>HOSTILE-04</span></div>
+ </div>
 
 
 <div id="overlay">
-  <h1>FPS // KOMPLEKS 40×40</h1>
+  <h1>NIGHTFALL<br><span style="color:var(--ui-orange);font-size:.55em;letter-spacing:0">DUSK DEPOT // READY</span></h1>
   <p id="overlayText">WASD / Panah untuk bergerak · Mouse untuk melihat · Klik kiri untuk menembak · Klik kanan untuk scope · Shift untuk lari · C untuk jongkok · R untuk reload · L untuk senter. Bertahan hidup di zona konflik.</p>
   <button id="startBtn">MULAI OPERASI</button>
 </div>
@@ -2154,6 +3539,11 @@
   Status: <span id="characterState" class="state">IDLE</span><br>
   Pemain lain: <span id="remoteCount">0</span>
 </div>
+<div id="nf-squad-status" aria-hidden="true">
+  <div class="nf-squad-line"><span><i></i><b>YOU</b></span><span>100%</span></div>
+  <div class="nf-squad-line"><span><i></i>GHOST-02</span><span>READY</span></div>
+  <div class="nf-squad-line"><span><i></i>ROOK-07</span><span>READY</span></div>
+</div>
 <div id="syncPanel" style="display:none">
   <strong>SYNC STATE TEXT / JSON</strong>
   <small>Demo remote otomatis mengikuti player. JSON ini hanya untuk koneksi server multiplayer nyata.</small>
@@ -2197,6 +3587,12 @@
   <span class="ammoLabel" aria-hidden="true"></span>
   <span id="ammoValue">30</span><span id="ammoReserve"> / 90</span>
   <span id="reloadStatus"></span>
+</div>
+<div id="nf-weapon-label" aria-hidden="true"><strong>RECON RIFLE</strong><span>FULL AUTO // 5.56MM</span><br>OPTIC ONLINE</div>
+<div id="nf2-hud-bottom" aria-hidden="true">
+  <span><b>Q</b> LEAN <b>E</b> LEAN</span>
+  <span class="nf2-hud-center"><i></i> ZONE STABLE <i></i></span>
+  <span><b>R</b> RELOAD <b>G</b> INTERACT</span>
 </div>
 <div id="interactionPrompt" aria-live="polite"></div>
 <button id="reloadBtn" type="button" aria-label="Reload">↻</button>
@@ -4704,6 +6100,7 @@ function startGame(event) {
   // Android akan meminta fullscreen dan mencoba mengunci orientasi landscape
   // dari gesture yang sama dengan tombol mulai.
   requestLandscapeFullscreen();
+  document.body.classList.add('game-started');
   // Klik tombol juga mem-bubble ke overlay. Hentikan bubble supaya pointer lock
   // atau start mobile tidak dipanggil dua kali.
   if (event && event.target === startBtn) event.stopPropagation();
@@ -4719,7 +6116,9 @@ startBtn.addEventListener('click', startGame);
 
 document.addEventListener('pointerlockchange', () => {
   if (!isTouchDevice) {
-    overlay.style.display = (document.pointerLockElement === renderer.domElement) ? 'none' : 'flex';
+    const isLocked = document.pointerLockElement === renderer.domElement;
+    overlay.style.display = isLocked ? 'none' : 'flex';
+    document.body.classList.toggle('game-started', isLocked);
   }
 });
 
@@ -6744,6 +8143,57 @@ document.addEventListener('fullscreenchange', resizePSXRenderer);
 document.addEventListener('webkitfullscreenchange', resizePSXRenderer);
 
 animate();
+</script>
+<script>
+  // Command-layer interactions for the lobby UI. These controls deliberately
+  // stay local so the existing Firebase matchmaking contract remains intact.
+  (() => {
+    const tabs = Array.from(document.querySelectorAll('[data-lobby-tab]'));
+    const modes = Array.from(document.querySelectorAll('[data-mode]'));
+    const queueLabel = document.getElementById('nf-queue-label');
+    const roomStatus = document.getElementById('roomStatus');
+    const aliveCount = document.getElementById('nf-alive-count');
+    const roomHudPlayers = document.getElementById('roomHudPlayers');
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.lobbyTab || 'PLAY';
+        tabs.forEach((item) => item.classList.toggle('active', item.dataset.lobbyTab === target));
+        if (queueLabel) {
+          queueLabel.textContent = target === 'PLAY'
+            ? 'MATCHMAKING STANDING BY'
+            : `${target} MODULE // PREVIEW`;
+        }
+        if (roomStatus && target !== 'PLAY') {
+          roomStatus.textContent = `${target} dipilih. Kembali ke PLAY untuk memulai operasi.`;
+        }
+      });
+    });
+
+    modes.forEach((mode) => {
+      mode.addEventListener('click', () => {
+        modes.forEach((item) => item.classList.toggle('active', item === mode));
+        const label = mode.dataset.mode || 'FREE FOR ALL';
+        if (queueLabel) queueLabel.textContent = `${label} // SEARCH READY`;
+        if (roomStatus) {
+          roomStatus.textContent = `Playlist ${label} dipilih. Tekan MULAI MATCH untuk masuk ke map yang tersedia.`;
+        }
+        const playTab = tabs.find((item) => item.dataset.lobbyTab === 'PLAY');
+        if (playTab) {
+          tabs.forEach((item) => item.classList.toggle('active', item.dataset.lobbyTab === 'PLAY'));
+        }
+      });
+    });
+
+    // Keep the new readout synced with the existing multiplayer counter.
+    const syncAliveReadout = () => {
+      if (!aliveCount || !roomHudPlayers) return;
+      const match = String(roomHudPlayers.textContent || '').match(/\d+/);
+      if (match) aliveCount.textContent = match[0];
+    };
+    syncAliveReadout();
+    window.setInterval(syncAliveReadout, 750);
+  })();
 </script>
 </body>
 </html>
