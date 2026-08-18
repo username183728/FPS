@@ -6124,7 +6124,7 @@ document.addEventListener('pointerlockchange', () => {
 
 document.addEventListener('mousemove', (e) => {
   if (isTouchDevice || document.pointerLockElement !== renderer.domElement) return;
-  const sensitivity = 0.0022;
+  const sensitivity = Number(window.NF_SETTINGS?.mouseSensitivity ?? 0.0022);
   yaw -= e.movementX * sensitivity;
   pitch -= e.movementY * sensitivity;
   addWeaponSway(e.movementX, e.movementY);
@@ -6152,7 +6152,7 @@ lookZone.addEventListener('touchmove', (e) => {
     const dy = t.clientY - lastLookY;
     lastLookX = t.clientX;
     lastLookY = t.clientY;
-    const sensitivity = 0.005;
+    const sensitivity = Number(window.NF_SETTINGS?.touchSensitivity ?? 0.005);
     yaw -= dx * sensitivity;
     pitch -= dy * sensitivity;
     addWeaponSway(dx, dy);
@@ -6305,6 +6305,7 @@ function findRemotePlayerHit(start, end) {
 
 function sendRemoteHit(actor, point) {
   if (!actor?.remoteId || !firebaseJoined || !db || !firebaseUser || !currentRoom) return;
+  window.NF_LAST_HIT = { uid: String(actor.remoteId), name: String(actor.name || 'HOSTILE'), at: performance.now() };
   const hitRef = db.ref(`rooms/${currentRoom}/hits/${actor.remoteId}`).push();
   hitRef.set({
     from: firebaseUser.uid,
@@ -7833,7 +7834,7 @@ function animate() {
   camera.rotation.order = 'YXZ';
   camera.rotation.y = yaw;
   camera.rotation.x = pitch;
-  const targetFov = aiming ? AIM_CAMERA_FOV : DEFAULT_CAMERA_FOV;
+  const targetFov = aiming ? AIM_CAMERA_FOV : Number(window.NF_SETTINGS?.fov ?? DEFAULT_CAMERA_FOV);
   if (Math.abs(camera.fov - targetFov) > 0.01) {
     camera.fov += (targetFov - camera.fov) * Math.min(1, delta * 14);
     camera.updateProjectionMatrix();
@@ -8195,5 +8196,198 @@ animate();
     window.setInterval(syncAliveReadout, 750);
   })();
 </script>
+
+<style id="nightfall-complete-mp-upgrade">
+/* =========================================================
+   NIGHTFALL // COMPLETE MULTIPLAYER UX UPGRADE
+   Client-side presentation layer. Existing gameplay/network core preserved.
+   ========================================================= */
+:root{--nf-orange:#ff7a18;--nf-green:#78e6c2;--nf-red:#ff5b66;--nf-panel:rgba(7,11,13,.91);--nf-line:rgba(156,190,182,.20)}
+#nf-pro-hud{position:fixed;inset:0;z-index:18;pointer-events:none;font-family:Consolas,monospace;color:#e9f2ee;display:none}
+body.game-started #nf-pro-hud{display:block}
+.nf-top-left{position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:8px}
+.nf-match-box,.nf-objective-box,.nf-network-box{background:rgba(4,8,10,.72);border:1px solid var(--nf-line);backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.nf-match-box{min-width:170px;padding:8px 10px}.nf-match-row{display:flex;justify-content:space-between;gap:18px;font-size:10px;letter-spacing:1.5px}.nf-match-row b{font-size:13px;color:#fff}.nf-match-row .alive{color:var(--nf-green)}
+.nf-objective-box{padding:8px 10px;min-width:210px}.nf-objective-box small{display:block;color:#6e8a80;font-size:8px;letter-spacing:1.5px}.nf-objective-box strong{font-size:11px;letter-spacing:1.4px}.nf-progress{height:3px;background:#16201e;margin-top:7px}.nf-progress i{display:block;width:100%;height:100%;background:var(--nf-orange)}
+.nf-top-right{position:absolute;right:14px;top:14px;width:min(290px,34vw);display:flex;flex-direction:column;gap:5px;align-items:stretch}.nf-kill-row{display:grid;grid-template-columns:42px 1fr 16px 1fr;gap:6px;align-items:center;background:rgba(4,8,10,.72);border:1px solid rgba(156,190,182,.12);padding:5px 7px;font-size:9px}.nf-kill-row .time{color:#5f776b}.nf-kill-row .killer{color:#eef5f2;text-align:right;overflow:hidden;text-overflow:ellipsis}.nf-kill-row .victim{color:#9eaea9;overflow:hidden;text-overflow:ellipsis}.nf-kill-row i{height:1px;background:#5f776b}
+#nf-network{position:absolute;right:14px;bottom:15px;padding:6px 8px;background:rgba(4,8,10,.65);border:1px solid var(--nf-line);font-size:8px;letter-spacing:1.2px;color:#7c958c}.nf-network-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#78e6c2;margin-right:5px}.nf-network-dot.bad{background:#ff5b66}.nf-network-dot.warn{background:#f4b74e}
+#nf-damage-direction{position:absolute;inset:0;opacity:0;transition:opacity .12s;filter:drop-shadow(0 0 8px rgba(255,40,50,.7))}.nf-dmg-arrow{position:absolute;left:50%;top:50%;font-size:42px;color:#ff5962;line-height:1;transform-origin:50% 50%;}
+#nf-hitmarker{position:absolute;left:50%;top:50%;width:28px;height:28px;transform:translate(-50%,-50%);opacity:0}.nf-hm-line{position:absolute;width:9px;height:2px;background:#fff;left:9px;top:13px}.nf-hm-line:nth-child(1){transform:rotate(45deg) translate(0,-5px)}.nf-hm-line:nth-child(2){transform:rotate(-45deg) translate(0,-5px)}.nf-hm-line:nth-child(3){transform:rotate(-45deg) translate(0,5px)}.nf-hm-line:nth-child(4){transform:rotate(45deg) translate(0,5px)}#nf-hitmarker.show{animation:nfHit .22s ease-out}.nf-headshot{position:absolute;left:50%;top:calc(50% + 26px);transform:translateX(-50%);font-size:8px;letter-spacing:2px;color:#fff;opacity:0} .nf-headshot.show{animation:nfHead .65s ease-out}@keyframes nfHit{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}35%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}@keyframes nfHead{0%{opacity:0;transform:translateX(-50%) translateY(6px)}25%{opacity:1;transform:translateX(-50%)}100%{opacity:0}}
+#nf-scoreboard{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(5px);font-family:Consolas,monospace;pointer-events:auto}.nf-score-card{width:min(720px,92vw);max-height:82vh;overflow:auto;background:rgba(7,11,13,.97);border:1px solid rgba(120,230,194,.32);box-shadow:0 25px 70px #000;padding:18px}.nf-score-head{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--nf-line);padding-bottom:12px;margin-bottom:8px}.nf-score-head h2{margin:0;font-size:18px;letter-spacing:3px}.nf-score-head small{color:#6e8a80}.nf-score-row{display:grid;grid-template-columns:34px 1fr 65px 65px 70px 75px;gap:8px;align-items:center;padding:9px 6px;border-bottom:1px solid rgba(156,190,182,.08);font-size:10px}.nf-score-row.header{color:#658077;font-size:8px;letter-spacing:1px}.nf-score-row.me{background:rgba(120,230,194,.08);border-left:2px solid var(--nf-green)}.nf-score-row.dead{opacity:.48}.nf-score-name{overflow:hidden;text-overflow:ellipsis}.nf-score-status{font-size:8px;color:var(--nf-green)}
+#nf-settings{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);font-family:Consolas,monospace;pointer-events:auto}.nf-settings-card{width:min(440px,90vw);background:#090e10;border:1px solid rgba(120,230,194,.3);padding:18px;box-shadow:0 30px 80px #000}.nf-settings-card h2{margin:0 0 16px;letter-spacing:3px}.nf-setting{margin:15px 0}.nf-setting label{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px}.nf-setting input[type=range]{width:100%;accent-color:var(--nf-orange)}.nf-setting select,.nf-settings-card button{background:#10191b;color:#dce8e3;border:1px solid #31433e;padding:9px;font:inherit}.nf-settings-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.nf-settings-actions button.primary{border-color:var(--nf-orange);color:#fff}
+#nf-death-upgrade{position:fixed;inset:0;z-index:55;display:none;align-items:center;justify-content:center;background:radial-gradient(circle at center,rgba(80,0,0,.14),rgba(0,0,0,.78));pointer-events:none;font-family:Consolas,monospace}.nf-death-card{min-width:280px;padding:24px;text-align:center;border:1px solid rgba(255,91,102,.28);background:rgba(7,10,11,.9);box-shadow:0 25px 70px #000}.nf-death-card h2{margin:0;color:#ff9ba2;letter-spacing:7px;font-size:28px}.nf-death-card .killer{margin:15px 0 3px;color:#70877f;font-size:9px;letter-spacing:2px}.nf-death-card .killer-name{font-size:16px}.nf-death-stats{display:flex;justify-content:center;gap:24px;margin:18px 0;color:#9cb2aa;font-size:9px}.nf-death-stats b{display:block;color:#fff;font-size:16px;margin-top:3px}.nf-death-respawn{color:var(--nf-orange);font-size:11px;letter-spacing:2px}
+#nf-settings-open{position:fixed;right:15px;bottom:64px;z-index:45;width:38px;height:38px;border:1px solid rgba(120,230,194,.28);background:rgba(7,11,13,.72);color:#c9ddd6;font:16px Consolas;display:none;border-radius:4px}body.game-started #nf-settings-open{display:block}body.is-touch #nf-settings-open{bottom:108px}
+body.is-touch #nf-pro-hud .nf-top-left{left:8px;top:8px}.nf-touch-tip{display:none}body.is-touch .nf-touch-tip{display:block;position:absolute;bottom:9px;left:50%;transform:translateX(-50%);font-size:7px;color:#668077;letter-spacing:1px}
+@media(max-width:700px){.nf-top-right{width:190px;right:7px;top:55px}.nf-match-box{min-width:145px}.nf-objective-box{min-width:150px}.nf-kill-row{font-size:8px;grid-template-columns:28px 1fr 10px 1fr}.nf-score-row{grid-template-columns:24px 1fr 45px 45px 50px 50px;font-size:8px}.nf-score-card{padding:10px}.nf-top-left{left:7px;top:7px}}
+</style>
+
+<div id="nf-pro-hud" aria-hidden="true">
+  <div class="nf-top-left">
+    <div class="nf-match-box">
+      <div class="nf-match-row"><span>FREE FOR ALL</span><b id="nf-pro-timer">03:00</b></div>
+      <div class="nf-match-row"><span>OPERATORS</span><b id="nf-pro-alive" class="alive">10/10</b></div>
+    </div>
+    <div class="nf-objective-box"><small>OBJECTIVE</small><strong id="nf-pro-objective">FIRST TO 30 ELIMINATIONS</strong><div class="nf-progress"><i id="nf-pro-progress"></i></div></div>
+  </div>
+  <div class="nf-top-right" id="nf-pro-killfeed"></div>
+  <div id="nf-damage-direction"><div class="nf-dmg-arrow">▲</div></div>
+  <div id="nf-hitmarker"><i class="nf-hm-line"></i><i class="nf-hm-line"></i><i class="nf-hm-line"></i><i class="nf-hm-line"></i></div>
+  <div id="nf-headshot" class="nf-headshot">HEADSHOT</div>
+  <div id="nf-network"><span id="nf-network-dot" class="nf-network-dot"></span><span id="nf-network-text">NETWORK CHECKING</span></div>
+  <div class="nf-touch-tip">TAB / SCOREBOARD</div>
+</div>
+
+<div id="nf-scoreboard" aria-hidden="true">
+  <div class="nf-score-card">
+    <div class="nf-score-head"><div><h2>SCOREBOARD</h2><small id="nf-score-subtitle">FREE FOR ALL // DUSK DEPOT</small></div><strong id="nf-score-time">03:00</strong></div>
+    <div class="nf-score-row header"><span>#</span><span>OPERATOR</span><span>STATUS</span><span>K</span><span>D</span><span>SCORE</span></div>
+    <div id="nf-score-list"></div>
+  </div>
+</div>
+
+<div id="nf-settings" aria-hidden="true">
+  <div class="nf-settings-card">
+    <h2>GAME SETTINGS</h2>
+    <div class="nf-setting"><label>FIELD OF VIEW <b id="nf-fov-value">75</b></label><input id="nf-fov" type="range" min="65" max="105" value="75"></div>
+    <div class="nf-setting"><label>MOUSE SENSITIVITY <b id="nf-mouse-value">100%</b></label><input id="nf-mouse" type="range" min="50" max="200" value="100"></div>
+    <div class="nf-setting"><label>TOUCH SENSITIVITY <b id="nf-touch-value">100%</b></label><input id="nf-touch" type="range" min="50" max="200" value="100"></div>
+    <div class="nf-setting"><label>HITMARKER <select id="nf-hit-toggle"><option value="on">ON</option><option value="off">OFF</option></select></label></div>
+    <div class="nf-setting"><label>AIM ASSIST <select id="nf-assist"><option value="on">ON</option><option value="off">OFF</option></select></label></div>
+    <div class="nf-settings-actions"><button id="nf-reset-settings">RESET</button><button id="nf-close-settings" class="primary">DONE</button></div>
+  </div>
+</div>
+<button id="nf-settings-open" type="button" aria-label="Game settings">⚙</button>
+
+<div id="nf-death-upgrade"><div class="nf-death-card"><h2>KIA</h2><div class="killer">ELIMINATED BY</div><div class="killer-name" id="nf-killer-name">UNKNOWN</div><div class="nf-death-stats"><div>KILLS<b id="nf-death-kills">0</b></div><div>DEATHS<b id="nf-death-deaths">0</b></div><div>ALIVE<b id="nf-death-alive">0</b></div></div><div class="nf-death-respawn" id="nf-death-respawn">RESPAWN 3.0</div></div></div>
+
+<script id="nightfall-complete-mp-upgrade-script">
+(() => {
+  'use strict';
+  const SKEY='nightfall-mp-settings-v1';
+  const defaults={fov:75,mouseSensitivity:0.0022,touchSensitivity:0.005,hitmarker:true,aimAssist:true};
+  let saved={...defaults};
+  try{saved={...saved,...JSON.parse(localStorage.getItem(SKEY)||'{}')}}catch(e){}
+  window.NF_SETTINGS=saved;
+  window.NF_LAST_HIT=null;
+  const $=id=>document.getElementById(id);
+  const state={kills:0,deaths:0,score:0,feed:[],players:{},lastHealth:{},lastDamageAt:0};
+  const scoreboard=$('nf-scoreboard'), scoreList=$('nf-score-list'), settings=$('nf-settings'), death=$('nf-death-upgrade');
+
+  function save(){try{localStorage.setItem(SKEY,JSON.stringify(window.NF_SETTINGS))}catch(e){}}
+  function applySettings(){
+    const s=window.NF_SETTINGS;
+    if(typeof camera!=='undefined'&&camera){camera.fov=s.fov;camera.updateProjectionMatrix()}
+    $('nf-fov').value=s.fov; $('nf-fov-value').textContent=s.fov;
+    $('nf-mouse').value=Math.round(s.mouseSensitivity/0.0022*100); $('nf-mouse-value').textContent=Math.round(s.mouseSensitivity/0.0022*100)+'%';
+    $('nf-touch').value=Math.round(s.touchSensitivity/0.005*100); $('nf-touch-value').textContent=Math.round(s.touchSensitivity/0.005*100)+'%';
+    $('nf-hit-toggle').value=s.hitmarker?'on':'off'; $('nf-assist').value=s.aimAssist?'on':'off';
+  }
+  applySettings();
+  $('nf-fov').oninput=e=>{window.NF_SETTINGS.fov=Number(e.target.value);$('nf-fov-value').textContent=e.target.value;save()};
+  $('nf-mouse').oninput=e=>{window.NF_SETTINGS.mouseSensitivity=.0022*(Number(e.target.value)/100);$('nf-mouse-value').textContent=e.target.value+'%';save()};
+  $('nf-touch').oninput=e=>{window.NF_SETTINGS.touchSensitivity=.005*(Number(e.target.value)/100);$('nf-touch-value').textContent=e.target.value+'%';save()};
+  $('nf-hit-toggle').onchange=e=>{window.NF_SETTINGS.hitmarker=e.target.value==='on';save()};
+  $('nf-assist').onchange=e=>{window.NF_SETTINGS.aimAssist=e.target.value==='on';save()};
+  $('nf-settings-open').onclick=()=>{settings.style.display='flex';settings.setAttribute('aria-hidden','false');applySettings()};
+  $('nf-close-settings').onclick=()=>{settings.style.display='none';settings.setAttribute('aria-hidden','true')};
+  $('nf-reset-settings').onclick=()=>{window.NF_SETTINGS={...defaults};save();applySettings()};
+
+  function showHitmarker(head=false){
+    if(!window.NF_SETTINGS.hitmarker)return;
+    const h=$('nf-hitmarker');h.classList.remove('show');void h.offsetWidth;h.classList.add('show');
+    if(head){const hs=$('nf-headshot');hs.classList.remove('show');void hs.offsetWidth;hs.classList.add('show')}
+  }
+  window.NF_showHitmarker=showHitmarker;
+  function addFeed(killer,victim,head=false){
+    const row={killer:String(killer||'UNKNOWN'),victim:String(victim||'HOSTILE'),head,time:new Date()};state.feed.unshift(row);state.feed=state.feed.slice(0,5);renderFeed();
+  }
+  function renderFeed(){
+    const el=$('nf-pro-killfeed');el.innerHTML=state.feed.map(x=>`<div class="nf-kill-row"><span class="time">${x.time.toLocaleTimeString([], {minute:'2-digit',second:'2-digit'})}</span><span class="killer">${esc(x.killer)}</span><i></i><span class="victim">${esc(x.victim)}${x.head?' • HS':''}</span></div>`).join('');
+  }
+  function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+  function renderScoreboard(){
+    const arr=Object.values(state.players);
+    const localName=(typeof getCharacterName==='function'?getCharacterName():'YOU');
+    if(!arr.some(p=>p.uid===firebaseUser?.uid))arr.push({uid:firebaseUser?.uid||'local',name:localName,health:typeof player!=='undefined'?player.health:100,alive:!(typeof player!=='undefined'&&player.dead),kills:state.kills,deaths:state.deaths,score:state.score});
+    arr.sort((a,b)=>(b.score||0)-(a.score||0)||(b.kills||0)-(a.kills||0));
+    scoreList.innerHTML=arr.map((p,i)=>{const me=p.uid===firebaseUser?.uid||p.uid==='local';const dead=p.alive===false||Number(p.health)<=0;return `<div class="nf-score-row ${me?'me ':''}${dead?'dead':''}"><span>${i+1}</span><span class="nf-score-name">${esc(p.name||'PLAYER')}</span><span class="nf-score-status">${dead?'KIA':'ALIVE'}</span><span>${p.kills||0}</span><span>${p.deaths||0}</span><span>${p.score||0}</span></div>`}).join('');
+    $('nf-score-time').textContent=$('roundTimer')?.textContent||'03:00';
+  }
+  function setScoreboard(open){scoreboard.style.display=open?'flex':'none';scoreboard.setAttribute('aria-hidden',String(!open));if(open)renderScoreboard()}
+  document.addEventListener('keydown',e=>{if(e.code==='Tab'){e.preventDefault();setScoreboard(true)}if(e.code==='Escape'&&scoreboard.style.display==='flex')setScoreboard(false)});
+  document.addEventListener('keyup',e=>{if(e.code==='Tab')setScoreboard(false)});
+
+  function updateNetwork(){
+    if(!window.db||!window.firebase)return;
+    try{db.ref('.info/connected').on('value',snap=>{const ok=snap.val()===true;const dot=$('nf-network-dot');dot.className='nf-network-dot '+(ok?'':'bad');$('nf-network-text').textContent=ok?'NETWORK ONLINE':'RECONNECTING...';})}catch(e){}
+  }
+  const waitNetwork=setInterval(()=>{if(window.db){clearInterval(waitNetwork);updateNetwork()}},250);
+
+  // Capture Firebase player state transitions for killfeed, scoreboard and enemy hit feedback.
+  const originalApply=window.applyFirebasePlayer;
+  if(typeof originalApply==='function'){
+    window.applyFirebasePlayer=function(uid,data){
+      const before=state.lastHealth[uid];
+      originalApply(uid,data);
+      state.lastHealth[uid]=Number(data?.health??100);
+      const p=state.players[uid]||{};state.players[uid]={...p,uid,name:data?.name||('PLAYER '+String(uid).slice(-4)),health:Number(data?.health??100),alive:data?.alive!==false,kills:p.kills||0,deaths:p.deaths||0,score:p.score||0};
+      if(before>0&&state.lastHealth[uid]<=0){
+        const victim=state.players[uid].name;const mine=window.NF_LAST_HIT&&window.NF_LAST_HIT.uid===String(uid)&&performance.now()-window.NF_LAST_HIT.at<8000;
+        if(mine){state.kills++;state.score+=100;addFeed('YOU',victim,false);showHitmarker(false)} else addFeed('HOSTILE',victim,false);
+        renderScoreboard();
+      }
+    };
+  }
+  const originalSend=window.sendRemoteHit;
+  if(typeof originalSend==='function'){
+    window.sendRemoteHit=function(actor,point){window.NF_LAST_HIT={uid:String(actor?.remoteId||''),name:String(actor?.name||'HOSTILE'),at:performance.now()};return originalSend(actor,point)};
+  }
+  const originalDamage=window.applyPlayerDamage;
+  if(typeof originalDamage==='function'){
+    window.applyPlayerDamage=function(amount,point){
+      const before=typeof player!=='undefined'?player.health:100;originalDamage(amount,point);
+      if(before>0&&typeof player!=='undefined'&&player.health<before){showDamageDirection(point)}
+      if(before>0&&typeof player!=='undefined'&&player.health<=0){state.deaths++;state.score=Math.max(0,state.score-25);showDeathUpgrade();}
+    };
+  }
+  function showDamageDirection(point){
+    const box=$('nf-damage-direction');const arrow=box.querySelector('.nf-dmg-arrow');
+    try{
+      const dx=point.x-camera.position.x,dz=point.z-camera.position.z;let angle=Math.atan2(dx,-dz)-yaw;arrow.style.transform=`translate(-50%,-50%) rotate(${angle}rad) translateY(-34vh)`;
+    }catch(e){arrow.style.transform='translate(-50%,-50%) translateY(-34vh)'}
+    box.style.opacity='1';clearTimeout(box._t);box._t=setTimeout(()=>box.style.opacity='0',430);
+  }
+  function showDeathUpgrade(){
+    $('nf-killer-name').textContent=window.NF_LAST_HIT?.name&&performance.now()-window.NF_LAST_HIT.at<10000?'UNKNOWN':'HOSTILE';
+    $('nf-death-kills').textContent=state.kills;$('nf-death-deaths').textContent=state.deaths;$('nf-death-alive').textContent=$('nf-pro-alive')?.textContent||'0';
+    death.style.display='flex';let t=3;const out=$('nf-death-respawn');out.textContent='RESPAWN '+t.toFixed(1);clearInterval(death._timer);death._timer=setInterval(()=>{t-=.1;out.textContent='RESPAWN '+Math.max(0,t).toFixed(1);if(t<=0){clearInterval(death._timer);death.style.display='none'}},100);
+  }
+
+  // Scoreboard data follows the existing room listener without changing its contract.
+  const roomPoll=setInterval(()=>{
+    if(typeof roomPlayersRef==='undefined'||!roomPlayersRef)return;
+    clearInterval(roomPoll);
+    roomPlayersRef.on('value',snap=>{const data=snap.val()||{};Object.entries(data).forEach(([uid,p])=>{const old=state.players[uid]||{};state.players[uid]={...old,uid,name:p.name||'PLAYER',health:Number(p.health??100),alive:p.alive!==false,kills:old.kills||0,deaths:old.deaths||0,score:old.score||0}});$('nf-pro-alive').textContent=Object.values(data).filter(p=>p.alive!==false&&Number(p.health)>0).length+'/10';renderScoreboard()});
+  },300);
+
+  // Keep top HUD synchronized with existing match timer/counter.
+  setInterval(()=>{const timer=$('roundTimer');const kc=$('killCounter');if(timer)$('nf-pro-timer').textContent=timer.textContent;if(timer)$('nf-score-time').textContent=timer.textContent;const k=parseInt((kc?.textContent||'0').match(/\d+/)?.[0]||'0',10);$('nf-pro-progress').style.width=Math.min(100,k/30*100)+'%';},250);
+
+  // Improve existing death screen text while keeping original mechanics intact.
+  const oldDeath=$('deathScreen');
+  if(oldDeath){const obs=new MutationObserver(()=>{if(oldDeath.classList.contains('active'))showDeathUpgrade();});obs.observe(oldDeath,{attributes:true,attributeFilter:['class']})}
+
+  // Join/leave notifications.
+  const originalRemove=window.removeFirebasePlayer;
+  if(typeof originalRemove==='function'){
+    window.removeFirebasePlayer=function(uid){const name=state.players[uid]?.name||('PLAYER '+String(uid).slice(-4));addFeed('SYSTEM',name+' LEFT');delete state.players[uid];return originalRemove(uid)};
+  }
+
+  // Make the existing HUD accessible on mobile without adding another permanent control cluster.
+  const settingsBtn=$('nf-settings-open');if(settingsBtn)settingsBtn.title='Settings: FOV, sensitivity, hitmarker';
+})();
+</script>
+
 </body>
 </html>
