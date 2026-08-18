@@ -1542,11 +1542,10 @@ async function loginGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    if (window.matchMedia('(max-width: 700px)').matches) {
-      await auth.signInWithRedirect(provider);
-    } else {
-      await auth.signInWithPopup(provider);
-    }
+    // Gunakan popup untuk semua perangkat.
+    // Ini menghindari masalah signInWithRedirect pada browser mobile/GitHub Pages
+    // yang dapat kehilangan storage lintas-domain setelah kembali dari Google.
+    await auth.signInWithPopup(provider);
   } catch (e) {
     console.error(e);
     googleLoginBtn.disabled = false;
@@ -1663,7 +1662,10 @@ if (leaveRoomBtn) leaveRoomBtn.addEventListener('click', async () => { await lea
 if (logoutBtn) logoutBtn.addEventListener('click', async () => { await leaveCurrentRoom(); try { await auth.signOut(); } catch(e){} });
 
 if (auth) {
-  auth.getRedirectResult().catch(e => { if (e?.code) setMpStatus(loginStatus, 'Login Google gagal: '+e.code, true); });
+  // Tetap menangani hasil redirect lama jika ada sesi redirect yang tertinggal.
+  auth.getRedirectResult().catch(e => {
+    if (e?.code) setMpStatus(loginStatus, 'Login Google gagal: '+e.code, true);
+  });
   auth.onAuthStateChanged(user => {
     firebaseUser = user || null;
     googleLoginBtn.disabled = false;
