@@ -1342,6 +1342,243 @@
   #roomInfoHud { position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:30; padding:4px 9px; background:rgba(5,6,7,.7); border:1px solid rgba(255,255,255,.15); color:#c8c0ae; font:700 10px/1.2 Consolas,monospace; pointer-events:none; }
   @media (max-width:600px){ .mpCard{padding:18px}.mpCard h1{font-size:18px} }
 </style>
+ <style id="lobby-visual-ui">
+   #authRoomOverlay:has(#roomScreen.active) {
+     align-items:stretch;
+     padding:clamp(12px,3vw,42px);
+     background:
+       radial-gradient(circle at 18% 78%, rgba(26,96,124,.34), transparent 34%),
+       radial-gradient(circle at 86% 18%, rgba(197,87,34,.24), transparent 32%),
+       linear-gradient(118deg,#071218 0%,#101c21 46%,#11100f 100%);
+   }
+   #authRoomOverlay:has(#roomScreen.active)::before {
+     content:"";
+     position:absolute;
+     inset:0;
+     opacity:.18;
+     background-image:
+       linear-gradient(rgba(168,219,226,.15) 1px,transparent 1px),
+       linear-gradient(90deg,rgba(168,219,226,.15) 1px,transparent 1px);
+     background-size:52px 52px;
+     mask-image:linear-gradient(135deg,black,transparent 70%);
+     pointer-events:none;
+   }
+   #authRoomOverlay:has(#roomScreen.active)::after {
+     content:"";
+     position:absolute;
+     inset:0;
+     pointer-events:none;
+     box-shadow:inset 0 0 130px rgba(0,0,0,.68);
+   }
+   #authRoomOverlay:has(#roomScreen.active) .mpCard {
+     position:relative;
+     z-index:1;
+     width:min(1180px,100%);
+     min-height:min(700px,100%);
+     box-sizing:border-box;
+     display:flex;
+     flex-direction:column;
+     justify-content:center;
+     padding:clamp(18px,4vw,54px);
+     background:rgba(5,10,13,.18);
+     border:0;
+     border-radius:0;
+     box-shadow:none;
+   }
+   #roomScreen.lobbyScreen.active {
+     position:relative;
+     min-height:clamp(430px,76vh,680px);
+     box-sizing:border-box;
+     display:flex;
+     flex-direction:column;
+     justify-content:space-between;
+     color:#eaf3f3;
+     animation:lobbyEnter .55s cubic-bezier(.22,.8,.24,1) both;
+   }
+   #roomScreen.lobbyScreen::before {
+     content:"";
+     position:absolute;
+     top:12%;
+     right:30%;
+     width:clamp(190px,28vw,420px);
+     height:clamp(190px,28vw,420px);
+     border:1px solid rgba(148,214,222,.22);
+     border-radius:50%;
+     box-shadow:0 0 0 26px rgba(148,214,222,.035),0 0 0 52px rgba(148,214,222,.025);
+     opacity:.72;
+     pointer-events:none;
+   }
+   .lobbyTopbar,.lobbyBottomline {
+     position:relative;
+     z-index:2;
+     display:flex;
+     align-items:center;
+     justify-content:space-between;
+     gap:16px;
+     color:rgba(217,236,237,.58);
+     font:700 10px/1 Consolas,monospace;
+     letter-spacing:1.5px;
+   }
+   .lobbyBrand,.lobbyTopStatus,.lobbyBottomline span { display:flex; align-items:center; gap:9px; }
+   .brandMark {
+     display:inline-flex;
+     align-items:center;
+     justify-content:center;
+     min-width:38px;
+     height:22px;
+     background:#a7d8dc;
+     color:#071318;
+     font:900 13px/1 Arial,sans-serif;
+     letter-spacing:-1px;
+     transform:skew(-12deg);
+   }
+   .lobbyTopStatus b { color:#e4b168; font-size:9px; }
+   .statusDot,.onlineLabel i {
+     width:6px;
+     height:6px;
+     display:inline-block;
+     border-radius:50%;
+     background:#83e3b2;
+     box-shadow:0 0 10px #83e3b2;
+   }
+   .lobbyContent {
+     position:relative;
+     z-index:2;
+     display:grid;
+     grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);
+     align-items:center;
+     gap:clamp(30px,8vw,120px);
+     flex:1;
+     padding:clamp(28px,6vh,68px) clamp(0px,3vw,34px);
+   }
+   .lobbyHero { max-width:640px; }
+   .lobbyEyebrow {
+     color:#91cdd2;
+     font:700 clamp(9px,1vw,12px)/1.2 Consolas,monospace;
+     letter-spacing:3px;
+   }
+   .lobbyEyebrow span { color:#d79655; margin:0 8px; }
+   .lobbyHero h1 {
+     margin:12px 0 10px;
+     color:#f2f6f5;
+     font:900 clamp(52px,8vw,106px)/.82 Arial Black,Impact,sans-serif;
+     letter-spacing:-5px;
+     text-shadow:5px 5px 0 rgba(8,25,30,.55);
+   }
+   .lobbyHero h1 span {
+     display:block;
+     color:#d89252;
+     font-size:.68em;
+     letter-spacing:-2px;
+   }
+   .lobbyLead {
+     max-width:420px;
+     margin:20px 0 26px;
+     color:rgba(223,238,239,.64);
+     font:400 13px/1.65 Arial,sans-serif;
+   }
+   .lobbyStatRow { display:flex; gap:clamp(16px,3vw,38px); }
+   .lobbyStat { display:flex; flex-direction:column; gap:5px; }
+   .lobbyStat strong { color:#e8bd7d; font:900 20px/1 Arial,sans-serif; }
+   .lobbyStat span { color:rgba(217,236,237,.48); font:700 8px/1 Consolas,monospace; letter-spacing:1px; }
+   .lobbySignal {
+     display:flex;
+     align-items:center;
+     gap:10px;
+     margin-top:30px;
+     color:rgba(217,236,237,.42);
+     font:700 9px/1 Consolas,monospace;
+     letter-spacing:1px;
+   }
+   .signalBars { display:flex; align-items:end; gap:2px; height:12px; }
+   .signalBars i { display:block; width:3px; background:#83e3b2; }
+   .signalBars i:nth-child(1){height:4px}.signalBars i:nth-child(2){height:7px}.signalBars i:nth-child(3){height:10px}.signalBars i:nth-child(4){height:12px}
+   .lobbyProfilePanel {
+     position:relative;
+     max-width:390px;
+     justify-self:end;
+     width:100%;
+     box-sizing:border-box;
+     padding:26px;
+     background:linear-gradient(145deg,rgba(20,38,43,.92),rgba(7,15,18,.92));
+     border:1px solid rgba(151,215,220,.26);
+     border-left:3px solid #d89252;
+     clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+     box-shadow:18px 18px 0 rgba(0,0,0,.12),0 20px 55px rgba(0,0,0,.28);
+   }
+   .panelCorner { position:absolute; width:16px; height:16px; border-color:#d89252; pointer-events:none; }
+   .panelCornerTop { top:-1px; right:22px; border-top:2px solid; border-right:2px solid; }
+   .panelCornerBottom { bottom:-1px; left:22px; border-bottom:2px solid; border-left:2px solid; }
+   .profilePanelHeader { display:flex; justify-content:space-between; align-items:center; padding-bottom:15px; border-bottom:1px solid rgba(190,224,225,.12); color:rgba(215,236,237,.58); font:700 10px/1 Consolas,monospace; letter-spacing:2px; }
+   .profilePanelHeader b { color:#83e3b2; font-size:9px; letter-spacing:1px; }
+   .lobbyUser { margin:22px 0 20px; }
+   .avatarFrame { position:relative; width:64px; height:64px; padding:3px; background:linear-gradient(135deg,#d89252,#7dbbc2); clip-path:polygon(0 0,100% 0,100% 82%,82% 100%,0 100%); }
+   .avatarFrame .mpAvatar { width:100%; height:100%; border-radius:0; background:#111e23; }
+   .avatarLevel { position:absolute; right:-7px; bottom:-7px; min-width:22px; padding:4px 3px; background:#d89252; color:#10191b; text-align:center; font:900 10px/1 Arial,sans-serif; }
+   .lobbyUserCopy { display:flex; flex-direction:column; gap:5px; }
+   .lobbyUserCopy b { color:#f1f7f5; font:900 20px/1 Arial Black,Arial,sans-serif; letter-spacing:.5px; }
+   .lobbyUserCopy .mpSmall { color:rgba(213,235,236,.36); font-size:9px; }
+   .onlineLabel { display:flex; align-items:center; gap:6px; color:#83e3b2; font:700 9px/1 Consolas,monospace; letter-spacing:1px; }
+   .lobbyInputLabel { display:block; margin-bottom:7px; color:rgba(213,235,236,.5); font:700 9px/1 Consolas,monospace; letter-spacing:1.5px; }
+   .lobbyInputWrap { display:flex; align-items:center; background:rgba(4,10,12,.7); border:1px solid rgba(162,215,219,.2); transition:border-color .2s,box-shadow .2s; }
+   .lobbyInputWrap:focus-within { border-color:#91cdd2; box-shadow:0 0 0 3px rgba(145,205,210,.1); }
+   .lobbyInputWrap > span { padding-left:13px; color:#d89252; font:900 18px/1 Arial,sans-serif; }
+   .lobbyInputWrap .mpInput { border:0; background:transparent; border-radius:0; padding:14px 11px; font:700 13px/1 Arial,sans-serif; letter-spacing:.5px; }
+   .loadoutStrip { display:flex; align-items:center; gap:11px; margin-top:15px; padding:11px 12px; background:rgba(145,205,210,.07); border:1px solid rgba(145,205,210,.11); }
+   .loadoutIcon { display:flex; align-items:center; justify-content:center; width:31px; height:31px; background:#d89252; color:#10191b; font:900 11px/1 Arial,sans-serif; }
+   .loadoutStrip div:nth-child(2) { display:flex; flex-direction:column; gap:3px; }
+   .loadoutStrip small { color:rgba(213,235,236,.42); font:700 8px/1 Consolas,monospace; letter-spacing:1px; }
+   .loadoutStrip strong { color:#dcebea; font:800 11px/1 Arial,sans-serif; }
+   .loadoutArrow { margin-left:auto; color:#d89252; font-size:24px; line-height:1; }
+   .lobbyProfilePanel .mpStatus { min-height:30px; margin:14px 0 0; color:rgba(213,235,236,.45); font-size:10px; line-height:1.4; }
+   #roomScreen.lobbyScreen .lobbyLogout { width:auto; margin:11px 0 0; padding:7px 0; border:0; background:transparent; color:rgba(213,235,236,.38); text-align:left; font-size:9px; letter-spacing:1px; }
+   #roomScreen.lobbyScreen .lobbyLogout:hover { color:#f2b075; }
+   #roomScreen.lobbyScreen .lobbyStartBtn {
+     position:relative;
+     right:auto;
+     bottom:auto;
+     z-index:3;
+     align-self:flex-end;
+     display:flex;
+     flex-direction:column;
+     align-items:flex-start;
+     gap:4px;
+     min-width:210px;
+     margin:0 5px 0 0;
+     padding:15px 22px 14px;
+     border:1px solid #f0b36e;
+     border-radius:0;
+     background:linear-gradient(110deg,#d17d42,#ebaa62);
+     color:#111b1d;
+     clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);
+     box-shadow:0 8px 0 rgba(67,35,19,.4),0 12px 28px rgba(0,0,0,.24);
+     transition:transform .2s,filter .2s,box-shadow .2s;
+   }
+   #roomScreen.lobbyScreen .lobbyStartBtn span { font:900 17px/1 Arial Black,Arial,sans-serif; letter-spacing:.5px; }
+   #roomScreen.lobbyScreen .lobbyStartBtn small { color:rgba(17,27,29,.62); font:700 8px/1 Consolas,monospace; letter-spacing:1.2px; }
+   #roomScreen.lobbyScreen .lobbyStartBtn:hover { filter:brightness(1.08); transform:translateY(-3px); box-shadow:0 11px 0 rgba(67,35,19,.4),0 16px 30px rgba(0,0,0,.28); }
+   #roomScreen.lobbyScreen .lobbyStartBtn:active { transform:translateY(2px); box-shadow:0 4px 0 rgba(67,35,19,.4); }
+   @keyframes lobbyEnter { from { opacity:0; transform:translateY(12px) scale(.985); } to { opacity:1; transform:none; } }
+   @media (max-width:820px) {
+     #authRoomOverlay:has(#roomScreen.active) { padding:14px; }
+     #authRoomOverlay:has(#roomScreen.active) .mpCard { padding:18px; }
+     .lobbyContent { gap:20px; padding:22px 0 28px; }
+     .lobbyHero h1 { font-size:clamp(48px,9vw,76px); }
+     .lobbyProfilePanel { padding:20px; }
+     .lobbyLead { margin:13px 0 18px; font-size:11px; }
+     .lobbySignal { margin-top:18px; }
+   }
+   @media (orientation:portrait) and (max-width:700px) {
+     #roomScreen.lobbyScreen.active { min-height:calc(100vh - 36px); }
+     .lobbyTopStatus { display:none; }
+     .lobbyContent { grid-template-columns:1fr; align-content:center; overflow:auto; }
+     .lobbyHero { max-width:none; }
+     .lobbyHero h1 { margin-top:8px; font-size:58px; }
+     .lobbyProfilePanel { justify-self:stretch; max-width:none; }
+     .lobbyBottomline { font-size:8px; }
+     #roomScreen.lobbyScreen .lobbyStartBtn { align-self:stretch; min-width:0; margin:16px 0 0; }
+   }
+ </style>
 </head>
 <body>
 <div id="authRoomOverlay">
@@ -1358,13 +1595,46 @@
       <button id="enterLobbyBtn" class="mpBtn primary">MASUK KE LOBBY</button>
     </div>
     <div id="roomScreen" class="mpScreen lobbyScreen">
-      <h1>LOBBY</h1>
-      <div class="mpUser"><img id="mpAvatar" class="mpAvatar" alt=""><div><b id="mpName">PLAYER</b><div id="mpUid" class="mpSmall"></div></div></div>
-      <label for="characterNameInput" class="mpSmall">NAMA KARAKTER</label>
-      <input id="characterNameInput" class="mpInput" maxlength="20" placeholder="Masukkan nama karakter">
-      <button id="joinRoomBtn" class="mpBtn primary">MULAI</button>
-      <button id="logoutBtn" class="mpBtn">KELUAR AKUN</button>
-      <div id="roomStatus" class="mpStatus">Pilih nama lalu tekan MULAI. Kamu akan masuk ke map yang masih tersedia.</div>
+      <div class="lobbyTopbar">
+        <div class="lobbyBrand"><span class="brandMark">FPS</span><span>ONLINE COMBAT</span></div>
+        <div class="lobbyTopStatus"><span class="statusDot"></span> SERVER ONLINE <b>10 PLAYER MAX</b></div>
+      </div>
+      <div class="lobbyContent">
+        <section class="lobbyHero">
+          <div class="lobbyEyebrow">SEASON 01 <span>//</span> OPERATION NIGHTFALL</div>
+          <h1>LOBBY<span>READY?</span></h1>
+          <p class="lobbyLead">Masuk ke map yang tersedia dan buktikan siapa yang paling terakhir bertahan.</p>
+          <div class="lobbyStatRow">
+            <div class="lobbyStat"><strong>10</strong><span>MAX PLAYERS</span></div>
+            <div class="lobbyStat"><strong>40M</strong><span>COMBAT ZONE</span></div>
+            <div class="lobbyStat"><strong>PVP</strong><span>FREE FOR ALL</span></div>
+          </div>
+          <div class="lobbySignal">
+            <span class="signalBars"><i></i><i></i><i></i><i></i></span>
+            <span>LOW LATENCY MATCHMAKING</span>
+          </div>
+        </section>
+        <section class="lobbyProfilePanel">
+          <div class="panelCorner panelCornerTop"></div>
+          <div class="profilePanelHeader"><span>PLAYER PROFILE</span><b>READY</b></div>
+          <div class="mpUser lobbyUser">
+            <div class="avatarFrame"><img id="mpAvatar" class="mpAvatar" alt=""><span class="avatarLevel">01</span></div>
+            <div class="lobbyUserCopy"><b id="mpName">PLAYER</b><div id="mpUid" class="mpSmall"></div><span class="onlineLabel"><i></i> ONLINE</span></div>
+          </div>
+          <label for="characterNameInput" class="lobbyInputLabel">NAMA KARAKTER</label>
+          <div class="lobbyInputWrap"><span>#</span><input id="characterNameInput" class="mpInput" maxlength="20" placeholder="Masukkan nama karakter"></div>
+          <div class="loadoutStrip">
+            <div class="loadoutIcon">01</div>
+            <div><small>LOADOUT</small><strong>RECON RIFLE</strong></div>
+            <span class="loadoutArrow">›</span>
+          </div>
+          <div id="roomStatus" class="mpStatus">Pilih nama lalu tekan MULAI. Kamu akan masuk ke map yang masih tersedia.</div>
+          <button id="logoutBtn" class="mpBtn lobbyLogout">KELUAR AKUN</button>
+          <div class="panelCorner panelCornerBottom"></div>
+        </section>
+      </div>
+      <div class="lobbyBottomline"><span>BUILD 1.0.7</span><span>VOICE COMMS READY</span><span>LANDSCAPE MODE</span></div>
+      <button id="joinRoomBtn" class="mpBtn primary lobbyStartBtn"><span>MULAI MATCH</span><small>ENTER THE ZONE&nbsp; ›</small></button>
     </div>
     <div id="roomReadyScreen" class="mpScreen">
       <h1 id="readyTitle">ROOM SIAP</h1>
